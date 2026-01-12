@@ -1,8 +1,8 @@
 #!/bin/bash
-# FilePath    : blog-server-dev\.gitalias\savetag.sh
+# FilePath    : go-utils\.gitalias\savetag.sh
 # Author      : jiaopengzi
 # Blog        : https://jiaopengzi.com
-# Copyright   : Copyright (c) 2025 by jiaopengzi, All Rights Reserved.
+# Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
 # Description : 根据 CHANGELOG.md 提交变更并打 Git 标签
 
 # 设置 Git 别名命令:
