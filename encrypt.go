@@ -229,9 +229,7 @@ func GenerateHexStr(numEvenBytes int) (string, error) {
 	}
 
 	// 转换为十六进制字符串
-	hexString := hex.EncodeToString(data)
-
-	return hexString, nil
+	return hex.EncodeToString(data), nil
 }
 
 // GenerateBinaryData 根据 numEvenBytes(必须是偶数) 生成指定长度的二进制数据
@@ -252,4 +250,15 @@ func GenerateBinaryData(numEvenBytes int) ([]byte, error) {
 	}
 
 	return _bytes, nil
+}
+
+// GenerateB64Str 根据 numEvenBytes 生成指定长度的 Base64 字符串
+func GenerateB64Str(numEvenBytes int) (string, error) {
+	data, err := GenerateBinaryData(numEvenBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// 转换为 Base64 字符串
+	return base64.StdEncoding.EncodeToString(data), nil
 }
