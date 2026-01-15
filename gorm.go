@@ -12,16 +12,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// CheckUpdateWithOptimisticLock 检查使用乐观锁更新记录时是否成功更新
-func CheckUpdateWithOptimisticLock(result *gorm.DB) error {
+// CheckGormUpdate 检查 gorm 更新操作的结果
+func CheckGormUpdate(result *gorm.DB) error {
 	// 检查是否成功更新了行
 	if result.Error != nil {
 		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		// 影响行数为0, 表示乐观锁更新失败
-		return ErrUpdateWithOptimisticLockFailed
+		// 没有更新任何行
+		return ErrUpdateRowsAffectedZero
 	}
 
 	return nil
