@@ -1,20 +1,26 @@
+//
+// FilePath    : go-utils\encrypt_json_test.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : 单测
+//
+
 package utils
 
 import (
+	"crypto/rand"
 	"encoding/base64"
-	"math/rand"
 	"reflect"
 	"testing"
-	"time"
 )
 
 // randomKeyB64 生成一个随机的 Base64 编码密钥, 长度为 n 字节
 func randomKeyB64(t *testing.T, n int) string {
 	t.Helper()
 	b := make([]byte, n)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := range b {
-		b[i] = byte(r.Intn(256))
+	if _, err := rand.Read(b); err != nil {
+		t.Fatalf("failed to generate random key: %v", err)
 	}
 	return base64.StdEncoding.EncodeToString(b)
 }
