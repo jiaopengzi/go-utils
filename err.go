@@ -8,6 +8,12 @@
 
 package utils
 
+import (
+	"errors"
+	"net"
+	"os"
+)
+
 type JpzError string
 
 const (
@@ -23,7 +29,33 @@ const (
 	ErrTokenMissingUserID     = JpzError("token_missing_user_id.")          // token 缺少用户ID
 	ErrTokenMissingJwi        = JpzError("token_missing_jwi.")              // token 缺少 jwi
 	ErrUpdateRowsAffectedZero = JpzError("update_rows_affected_zero.")      // 更新影响行数为0
+	ErrTimeout                = JpzError("timeout.")                        // 超时
 )
 
 // Error 实现 error 接口 Error 方法
 func (e JpzError) Error() string { return string(e) }
+
+// IsTimeoutError 判断是否是超时错误
+func IsTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// 检查 os.ErrDeadlineExceeded
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		return true
+	}
+
+	// 检查 net.Error 的 Timeout() 方法
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+
+	// 是否包含 JpzError 超时错误
+	if errors.Is(err, ErrTimeout) {
+		return true
+	}
+
+	return false
+}
