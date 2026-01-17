@@ -30,6 +30,7 @@ const (
 	ErrTokenMissingJwi        = JpzError("token_missing_jwi.")              // token 缺少 jwi
 	ErrUpdateRowsAffectedZero = JpzError("update_rows_affected_zero.")      // 更新影响行数为0
 	ErrTimeout                = JpzError("timeout.")                        // 超时
+	ErrInvalidSignature       = JpzError("invalid_signature.")              // 签名无效
 )
 
 // Error 实现 error 接口 Error 方法

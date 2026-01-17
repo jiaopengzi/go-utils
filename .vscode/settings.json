@@ -18,9 +18,10 @@
         "terminal.ansiRed": "#CC342B",
         "terminal.ansiWhite": "#C5C8C6",
         "terminal.ansiYellow": "#FBA922",
-        "activityBar.background": "#233208",
-        "titleBar.activeBackground": "#30460C",
-        "titleBar.activeForeground": "#F6FCEC"
+        "activityBar.background": "#660000",
+        "activityBar.foreground": "#cccccc",
+        "titleBar.activeBackground": "#660000",
+        "titleBar.activeForeground": "#cccccc",
     },
     "cSpell.words": [
         "dout",
@@ -37,6 +38,7 @@
         "nokey",
         "noprint",
         "Presign",
+        "resty",
         "STARTTLS",
         "typedapi",
         "vframes"
