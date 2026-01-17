@@ -1,6 +1,6 @@
 module github.com/jiaopengzi/go-utils
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/elastic/go-elasticsearch/v9 v9.2.1
