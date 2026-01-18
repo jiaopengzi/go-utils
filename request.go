@@ -42,6 +42,7 @@ type SignOptions struct {
 	Nonce                  string            // 随机数
 	EncryptedData          string            // 加密数据(请求体)
 	AppSecret              string            // 应用密钥
+	SignatureAlgorithm     HashAlgorithm     // 签名算法
 	Signature              string            // 签名
 	MaxTimestampDiffSecond int64             // 最大时间戳差异(秒)
 }
@@ -55,18 +56,31 @@ func (o *SignOptions) GetSignData() string {
 		o.AppID + "\n" +
 		o.TimestampNano + "\n" +
 		o.Nonce + "\n" +
+		string(o.SignatureAlgorithm) + "\n" +
 		o.EncryptedData
 }
 
 // Sign 生成请求签名并设置到 SignOptions.Signature 字段
-func (o *SignOptions) Sign(opts ...SignOptionFunc) {
+func (o *SignOptions) Sign() {
+	// 判断是否设置签名算法
+	if o.SignatureAlgorithm == "" {
+		o.SignatureAlgorithm = SHA256
+	}
+
+	// 获取用于签名的数据
 	signData := o.GetSignData()
+
 	// 计算签名
-	o.Signature = SignData(signData, o.AppSecret, opts...)
+	o.Signature = SignData(signData, o.AppSecret, WithAlgorithm(o.SignatureAlgorithm))
 }
 
 // Verify 验证请求签名是否有效
-func (o *SignOptions) Verify(opts ...SignOptionFunc) error {
+func (o *SignOptions) Verify() error {
+	// 判断是否设置签名算法
+	if o.SignatureAlgorithm == "" {
+		o.SignatureAlgorithm = SHA256
+	}
+
 	// 校验时间戳差异
 	if !o.VerifyTimestamp() {
 		return ErrTimestampDiffExceeded
@@ -76,7 +90,7 @@ func (o *SignOptions) Verify(opts ...SignOptionFunc) error {
 	signData := o.GetSignData()
 
 	// 计算并验证签名
-	return VerifySignature(signData, o.AppSecret, o.Signature, opts...)
+	return VerifySignature(signData, o.AppSecret, o.Signature, WithAlgorithm(o.SignatureAlgorithm))
 }
 
 // VerifyTimestamp 验证时间戳是否在允许范围内
