@@ -31,6 +31,7 @@ const (
 	ErrUpdateRowsAffectedZero = JpzError("update_rows_affected_zero.")      // 更新影响行数为0
 	ErrTimeout                = JpzError("timeout.")                        // 超时
 	ErrInvalidSignature       = JpzError("invalid_signature.")              // 签名无效
+	ErrTimestampDiffExceeded  = JpzError("timestamp_difference_exceeded.")  // 时间戳差异超出允许范围
 )
 
 // Error 实现 error 接口 Error 方法

@@ -19,13 +19,8 @@ import (
 )
 
 // EncryptJSON 使用 Base64 的密钥 key, 加密任意结构体 data, 并返回 Base64 编码的密文和 nonce
+// 如果 data 为 nil, 则返回空密文和有效的 nonce
 func EncryptJSON(data any, key string) (string, string, error) {
-	// 序列化为 JSON
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		return "", "", fmt.Errorf("marshal json: %w", err)
-	}
-
 	// 将 Base64 密钥解码为字节切片
 	keyBytes, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
@@ -50,6 +45,17 @@ func EncryptJSON(data any, key string) (string, string, error) {
 		return "", "", fmt.Errorf("read nonce: %w", err)
 	}
 
+	// 如果 data 为 nil, 返回空密文和有效的 nonce
+	if IsInterfaceNil(data) {
+		return "", base64.StdEncoding.EncodeToString(nonce), nil
+	}
+
+	// 序列化为 JSON
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return "", "", fmt.Errorf("marshal json: %w", err)
+	}
+
 	// 加密
 	ciphertext := gcm.Seal(nonce, nonce, jsonBytes, nil)
 
@@ -58,10 +64,16 @@ func EncryptJSON(data any, key string) (string, string, error) {
 }
 
 // DecryptJSON 使用 Base64 的密钥 key, 解密 Base64 编码的密文 encryptedB64 到目标结构 dst, dst 应为指针类型.
+// 如果 encryptedB64 为空字符串, 则直接返回 nil.
 func DecryptJSON(encryptedB64 string, key string, dst any) error {
 	// 如果 dst 不是指针类型，返回错误
 	if !IsPointer(dst) {
 		return fmt.Errorf("dst %T must be a pointer", dst)
+	}
+
+	// 如果密文为空，直接返回 nil
+	if encryptedB64 == "" {
+		return nil
 	}
 
 	// 将 Base64 编码的密文解码为字节切片

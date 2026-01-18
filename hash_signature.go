@@ -35,7 +35,13 @@ func SignData(data string, secret string, opts ...SignOptionFunc) string {
 
 // VerifySignature 验证数据的签名是否有效
 // 注意: 验签时需要使用与签名时相同的算法选项
-func VerifySignature(data string, secret string, signature string, opts ...SignOptionFunc) bool {
+func VerifySignature(data string, secret string, signature string, opts ...SignOptionFunc) error {
 	expectedSignature := SignData(data, secret, opts...)
-	return expectedSignature == signature
+
+	// 比较签名
+	if expectedSignature == signature {
+		return nil
+	}
+
+	return ErrInvalidSignature
 }

@@ -169,3 +169,13 @@ func SleepWithContext(ctx context.Context, duration time.Duration) error {
 func GetCurrentYear() int {
 	return time.Now().Year()
 }
+
+// GetCurrentTimestampNano 获取当前时间戳(纳秒)
+func GetCurrentTimestampNano() int64 {
+	return time.Now().UnixNano()
+}
+
+// GetCurrentTimestampNanoStr 获取当前时间戳字符串(纳秒)
+func GetCurrentTimestampNanoStr() string {
+	return fmt.Sprintf("%d", GetCurrentTimestampNano())
+}
