@@ -131,13 +131,14 @@ func HasAppIDWithGin(c *gin.Context) (bool, string) {
 // BuildSignOptions 构建签名选项
 func BuildSignOptions(c *gin.Context, appSecret string) SignOptions {
 	opt := SignOptions{
-		HTTPMethod:    c.Request.Method,
-		Path:          c.Request.URL.Path,
-		AppID:         c.GetHeader(HeaderAppID),
-		TimestampNano: c.GetHeader(HeaderTimestamp),
-		Nonce:         c.GetHeader(HeaderNonce),
-		AppSecret:     appSecret,
-		Signature:     c.GetHeader(HeaderSignature),
+		HTTPMethod:         c.Request.Method,
+		Path:               c.Request.URL.Path,
+		AppID:              c.GetHeader(HeaderAppID),
+		TimestampNano:      c.GetHeader(HeaderTimestamp),
+		Nonce:              c.GetHeader(HeaderNonce),
+		AppSecret:          appSecret,
+		SignatureAlgorithm: HashAlgorithm(c.GetHeader(HeaderSignatureAlgorithm)),
+		Signature:          c.GetHeader(HeaderSignature),
 	}
 
 	// 解析查询参数
