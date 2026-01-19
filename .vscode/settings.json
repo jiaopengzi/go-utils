@@ -45,12 +45,17 @@
         "NOTPAY",
         "PAYERROR",
         "Presign",
+        "Primarykey",
+        "Ptrs",
         "refunddomestic",
         "resty",
         "smartwalle",
         "STARTTLS",
+        "stretchr",
+        "Tabler",
         "typedapi",
         "USERPAYING",
+        "varchar",
         "vframes",
         "wechatpay"
     ]
