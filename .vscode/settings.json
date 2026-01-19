@@ -33,10 +33,13 @@
         "golangci",
         "gopls",
         "gorm",
+        "gormlogger",
         "intf",
         "LASTEXITCODE",
         "mapstructure",
         "Mchid",
+        "moul",
+        "natefinch",
         "NOAUTH",
         "nokey",
         "nolint",
@@ -52,11 +55,13 @@
         "smartwalle",
         "STARTTLS",
         "stretchr",
+        "Syncer",
         "Tabler",
         "typedapi",
         "USERPAYING",
         "varchar",
         "vframes",
-        "wechatpay"
+        "wechatpay",
+        "zapgorm"
     ]
 }
