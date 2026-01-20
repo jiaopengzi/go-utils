@@ -43,6 +43,7 @@
         "moul",
         "natefinch",
         "NOAUTH",
+        "NOGROUP",
         "nokey",
         "nolint",
         "noprint",
@@ -66,6 +67,9 @@
         "varchar",
         "vframes",
         "wechatpay",
+        "XCLAIM",
+        "XINFO",
+        "XPENDING",
         "zapgorm"
     ]
 }
