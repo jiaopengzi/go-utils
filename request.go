@@ -195,8 +195,8 @@ func DecryptAndSetBody[T any](c *gin.Context, encryptedData, appSecret string) e
 		return err
 	}
 
-	// 将解密后的数据序列化为 JSON
-	jsonData, err := json.Marshal(decryptedData)
+	// 将解密后的数据序列化为 JSON, 需要使用指针
+	jsonData, err := json.Marshal(&decryptedData)
 	if err != nil {
 		return err
 	}
