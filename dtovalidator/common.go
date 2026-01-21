@@ -12,6 +12,7 @@ import (
 	"slices"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jiaopengzi/go-utils/model"
 	"github.com/jiaopengzi/go-utils/types"
 )
 
@@ -60,6 +61,10 @@ func init() {
 	RegisterValidator("ValidateTrimContent", ValidatorEntry{
 		ValidatorFunc: ValidateTrimContent,
 		ErrMsg:        "请输入正确内容,首尾不包含空格",
+	})
+	RegisterValidator("ValidateCurrency", ValidatorEntry{
+		ValidatorFunc: ValidateCurrency,
+		ErrMsg:        "请输入正确的货币类型.",
 	})
 }
 
@@ -248,4 +253,18 @@ func ValidateEnumString(fl validator.FieldLevel, validValues ...string) bool {
 	}
 
 	return slices.Contains(validValues, v)
+}
+
+// ValidateCurrency 校验货币类型
+func ValidateCurrency(fl validator.FieldLevel) bool {
+	return ValidateEnumInt64(fl,
+		int64(model.CurrencyCNY),
+		int64(model.CurrencyUSD),
+		int64(model.CurrencyEUR),
+		int64(model.CurrencyGBP),
+		int64(model.CurrencyHKD),
+		int64(model.CurrencyTWD),
+		int64(model.CurrencySGD),
+		int64(model.CurrencyRUB),
+	)
 }
