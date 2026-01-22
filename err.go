@@ -33,6 +33,7 @@ const (
 	ErrInvalidSignature       = JpzError("invalid_signature.")              // 签名无效
 	ErrTimestampDiffExceeded  = JpzError("timestamp_difference_exceeded.")  // 时间戳差异超出允许范围
 	ErrRequestIDNotFound      = JpzError("request_id_not_found.")           // 请求ID未找到
+	ErrDistributedLockFailed  = JpzError("distributed_lock_failed.")        // 分布式锁获取失败
 )
 
 // Error 实现 error 接口 Error 方法
