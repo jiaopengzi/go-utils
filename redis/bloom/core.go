@@ -113,7 +113,7 @@ func (b *Bloom) MAdd(items []string) error {
 	return nil
 }
 
-// Test 判断元素是否存在(可能会误判, 但如果不存在则一定不存在)
+// Test 判断元素是否存在(可能会误判, 但如果不存在则一定不存在), 返回 true 表示可能存在, false 表示一定不存在
 func (b *Bloom) Test(testStr string) (bool, error) {
 	// 判断 testStr 是否为空
 	if testStr == "" {

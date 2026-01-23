@@ -50,7 +50,7 @@ func (b *FilterTemp) MAdd(items []string) {
 	}
 }
 
-// Test 判断元素是否存在(可能会误判,但如果不存在则一定不存在)
+// Test 判断元素是否存在(可能会误判,但如果不存在则一定不存在), 返回 true 表示可能存在, false 表示一定不存在
 func (b *FilterTemp) Test(testStr string) bool {
 	return b.Filter.Test([]byte(testStr))
 }
