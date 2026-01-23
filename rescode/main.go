@@ -30,14 +30,9 @@ var StatusCodeMsgMap = make(CodeMsgMap)
 // StatusCodeMsgMapDoc 文档使用的状态码信息
 var StatusCodeMsgMapDoc = make(map[StatusCodeType]CodeMsgMapDoc)
 
-// MsgCode 状态码信息
-type MsgCode struct {
-	StatusCode StatusCodeType
-}
-
 // Msg 返回状态码信息中的消息
-func (m *MsgCode) Msg() string {
-	msg, ok := StatusCodeMsgMap[m.StatusCode]
+func (c StatusCodeType) Msg() string {
+	msg, ok := StatusCodeMsgMap[c]
 	if !ok {
 		return "未知状态码"
 	}

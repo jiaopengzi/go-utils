@@ -39,6 +39,7 @@
         "gormlogger",
         "intf",
         "LASTEXITCODE",
+        "madd",
         "mapstructure",
         "Mchid",
         "moul",

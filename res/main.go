@@ -66,13 +66,10 @@ func MsgResponse[D any](r *Response[D], c *gin.Context) {
 		return
 	}
 
-	// 处理返回信息
-	msgCode := &rescode.MsgCode{StatusCode: r.Code}
-
 	c.JSON(http.StatusOK, &Response[D]{
 		RequestID: requestID,
 		Code:      r.Code,
-		Msg:       msgCode.Msg(),
+		Msg:       r.Code.Msg(),
 		Data:      r.Data,
 	})
 
