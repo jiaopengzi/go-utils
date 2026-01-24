@@ -174,9 +174,8 @@ func removeExtraConsumers[T any](consumer *BaseConsumer[T], consumerInfos []redi
 			if MaxForCount == _stream.RemoveConsumerForMaxCount {
 				commandStr := fmt.Sprintf("消费者删除已经执行了 10000 次, 请在 redis 执行命令:XINFO CONSUMERS %s %s 查看具体问题。", consumer.StreamName, consumer.GroupName)
 				err := errors.New(commandStr)
-				zap.L().Error("移除消费者陷入死循环, 请检查", zap.Error(err))
 
-				return err
+				return fmt.Errorf("移除消费者陷入死循环, 请检查: %w", err)
 			}
 		}
 	}
@@ -237,7 +236,7 @@ func HandleAndAckMessage[T any](c *BaseConsumer[T], message redis.XMessage, msgK
 
 	if err != nil {
 		zap.L().Error("parseMessageValue() failed", logFields(err)...)
-		return err
+		return fmt.Errorf("解析消息失败: %w", err)
 	}
 
 	// 调用回调函数处理消息

@@ -9,6 +9,8 @@
 package model
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -21,7 +23,7 @@ func CustomAutoMigrate(db *gorm.DB) (err error) {
 	// 执行迁移
 	err = db.AutoMigrate(models...)
 	if err != nil {
-		zap.L().Error("custom migrate failed", zap.Error(err))
+		return fmt.Errorf("custom migrate failed: %w", err)
 	}
 
 	zap.L().Info("custom migrate success")

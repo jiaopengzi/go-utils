@@ -95,6 +95,7 @@ func (tm *TaskManager) createTaskExecutor(task *Task, spec string, isOneTime boo
 		if !task.ExpireTime.IsZero() && time.Now().After(task.ExpireTime) {
 			if err := tm.RemoveTask(string(task.Name)); err != nil {
 				zap.L().Error("移除过期任务失败", zap.String("任务名", string(task.Name)), zap.Error(err))
+				return
 			}
 
 			zap.L().Info("任务已过期，停止执行", zap.String("任务名", string(task.Name)))
@@ -106,12 +107,15 @@ func (tm *TaskManager) createTaskExecutor(task *Task, spec string, isOneTime boo
 		if err := task.Action(); err != nil {
 			msg := fmt.Sprintf("任务 %s 执行失败，错误信息: %v", task.Name, err)
 			zap.L().Error(msg)
+
+			return
 		}
 
 		// 如果是一次性任务，执行完成后移除
 		if isOneTime {
 			if err := tm.RemoveTask(string(task.Name)); err != nil {
 				zap.L().Error("移除一次性任务失败", zap.String("任务名", string(task.Name)), zap.Error(err))
+				return
 			}
 
 			zap.L().Info("一次性任务已执行完毕，停止执行", zap.String("任务名", string(task.Name)))

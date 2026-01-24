@@ -69,8 +69,7 @@ func NewWeChatPay(conf *WeChatPayConfig, apiPath, payBasePath string) (*WeChatPa
 	// 使用 utils 提供的函数从本地文件中加载商户私钥，商户私钥会用来生成请求的签名
 	mchPrivateKey, err := wechatUtils.LoadPrivateKey(conf.MchPrivateKey)
 	if err != nil {
-		zap.L().Warn("load WeChatPay private key error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("load WeChatPay private key error: %w", err)
 	}
 
 	// 使用商户私钥等初始化 client，并使它具有自动定时获取微信支付平台证书的能力
@@ -86,8 +85,7 @@ func NewWeChatPay(conf *WeChatPayConfig, apiPath, payBasePath string) (*WeChatPa
 	// 创建 WeChatPay 客户端
 	client, err := core.NewClient(context.Background(), opts...)
 	if err != nil {
-		zap.L().Warn("create WeChatPay client error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("create WeChatPay client error: %w", err)
 	}
 
 	// 创建 WeChatPay 实例
@@ -132,8 +130,7 @@ func (w *WeChatPay) Prepay(orderID uint64, amount int64, description, returnURL 
 	)
 
 	if err != nil {
-		zap.L().Warn("WeChatPay prepay error", zap.Error(err))
-		return "", err
+		return "", fmt.Errorf("WeChatPay prepay error: %w", err)
 	}
 
 	return *resp.CodeUrl, nil
@@ -145,8 +142,7 @@ func (w *WeChatPay) GetNotifyPayment(request *http.Request) (bool, *PaymentResul
 	transaction, err := validateParseNotifyRequest[payments.Transaction](w, request)
 	if err != nil {
 		// 如果验签未通过，或者解密失败
-		zap.L().Warn("WeChatPay verify sign error", zap.Error(err))
-		return false, nil, err
+		return false, nil, fmt.Errorf("WeChatPay verify sign error: %w", err)
 	}
 
 	// 检查响应字段是否为 nil
@@ -158,14 +154,12 @@ func (w *WeChatPay) GetNotifyPayment(request *http.Request) (bool, *PaymentResul
 		transaction.Appid == nil ||
 		transaction.Mchid == nil ||
 		transaction.TradeState == nil {
-		zap.L().Warn("WeChatPay transaction fields are nil")
 		return false, nil, errors.New("transaction fields are nil")
 	}
 
 	// 检查交易状态是否为成功
 	if *transaction.TradeState != TradeStateWechatPaySuccess {
-		zap.L().Warn("WeChatPay trade state is not success", zap.String("trade_state", *transaction.TradeState))
-		return false, nil, errors.New("trade state is not success")
+		return false, nil, errors.New("trade state is not success : " + *transaction.TradeState)
 	}
 
 	result := &PaymentResult{
@@ -189,44 +183,27 @@ func (w *WeChatPay) GetNotifyPayment(request *http.Request) (bool, *PaymentResul
 func (w *WeChatPay) ValidateNotifyPayment(payment *PaymentResult, orderID uint64, amount int64) (bool, *PaymentResult, error) {
 	// 检查支付结果是否为 nil
 	if payment == nil {
-		zap.L().Warn("WeChatPay payment result is nil")
-		return false, nil, errors.New("payment result is nil")
+		return false, nil, errors.New("WeChatPay payment result is nil")
 	}
 
 	// 校验订单号
 	if payment.OrderID != orderID {
-		zap.L().Warn("WeChatPay order ID mismatch",
-			zap.Uint64("expected_order_id", orderID),
-			zap.Uint64("actual_order_id", payment.OrderID))
-
-		return false, nil, errors.New("order ID mismatch")
+		return false, nil, fmt.Errorf("order ID mismatch: expected %d, got %d", orderID, payment.OrderID)
 	}
 
 	// 校验金额
 	if payment.TotalAmount != amount {
-		zap.L().Warn("WeChatPay amount mismatch",
-			zap.Int64("expected_amount", amount),
-			zap.Int64("actual_amount", payment.TotalAmount))
-
-		return false, nil, errors.New("amount mismatch")
+		return false, nil, fmt.Errorf("amount mismatch: expected %d, got %d", amount, payment.TotalAmount)
 	}
 
 	// 校验商户号
 	if payment.MchID != w.Conf.MchID {
-		zap.L().Warn("WeChatPay MchID mismatch",
-			zap.String("expected_mchid", w.Conf.MchID),
-			zap.String("actual_mchid", payment.MchID))
-
-		return false, nil, errors.New("MchID mismatch")
+		return false, nil, fmt.Errorf("MchID mismatch: expected %s, got %s", w.Conf.MchID, payment.MchID)
 	}
 
 	// 校验 AppID
 	if payment.AppID != w.Conf.AppID {
-		zap.L().Warn("WeChatPay AppID mismatch",
-			zap.String("expected_appid", w.Conf.AppID),
-			zap.String("actual_appid", payment.AppID))
-
-		return false, nil, errors.New("AppID mismatch")
+		return false, nil, fmt.Errorf("AppID mismatch: expected %s, got %s", w.Conf.AppID, payment.AppID)
 	}
 
 	// 如果所有校验都通过，返回 true 和支付结果
@@ -246,8 +223,7 @@ func (w *WeChatPay) QueryPayment(orderID uint64) (*PaymentResult, error) {
 	)
 
 	if err != nil {
-		zap.L().Warn("WeChatPay query payment error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay query payment error: %w", err)
 	}
 
 	result := &PaymentResult{
@@ -269,8 +245,7 @@ func (w *WeChatPay) QueryPayment(orderID uint64) (*PaymentResult, error) {
 		case TradeStateWechatPayClosed: // 已关闭
 			state = TradeStateClosed
 		default:
-			zap.L().Warn("WeChatPay unknown trade state", zap.String("trade_state", *resp.TradeState))
-			return nil, errors.New("unknown trade state")
+			return nil, fmt.Errorf("WeChatPay unknown trade state: %s", *resp.TradeState)
 		}
 	}
 
@@ -306,15 +281,13 @@ func (w *WeChatPay) CloseOrder(orderID uint64) error {
 	)
 
 	if err != nil {
-		zap.L().Warn("WeChatPay cancel order error", zap.Error(err))
-		return err
+		return fmt.Errorf("WeChatPay cancel order error: %w", err)
 	}
 
 	// 检查响应状态码是否为 204 No Content
 	// 文档: https://pay.weixin.qq.com/doc/v3/merchant/4012791881
 	if result.Response.StatusCode != http.StatusNoContent {
-		zap.L().Warn("WeChatPay cancel order failed", zap.Int("status_code", result.Response.StatusCode))
-		return errors.New("cancel order failed, status code: " + utils.IntToStr(result.Response.StatusCode))
+		return fmt.Errorf("WeChatPay cancel order failed: status code %d", result.Response.StatusCode)
 	}
 
 	return nil
@@ -350,8 +323,7 @@ func (w *WeChatPay) Refund(orderID, refundID uint64, amount, refundAmount int64,
 		if apiResult != nil && apiResult.Response != nil && apiResult.Response.StatusCode == http.StatusForbidden {
 			matched, errR := regexp.MatchString(`NOT_ENOUGH`, err.Error())
 			if errR != nil {
-				zap.L().Warn("regexp match error", zap.Error(err))
-				return nil, err
+				return nil, fmt.Errorf("regexp match error: %w", errR)
 			}
 
 			// 如果匹配到余额不足错误，则返回自定义错误
@@ -361,22 +333,18 @@ func (w *WeChatPay) Refund(orderID, refundID uint64, amount, refundAmount int64,
 			}
 		}
 
-		zap.L().Warn("WeChatPay refund error", zap.Error(err))
-
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay refund error: %w", err)
 	}
 
 	// 检查响应字段是否为 nil
 	if err = checkRefundFields(resp); err != nil {
-		zap.L().Warn("WeChatPay response fields are nil", zap.Error(err))
-		return nil, errors.New("response fields are nil")
+		return nil, fmt.Errorf("WeChatPay response fields are nil: %w", err)
 	}
 
 	// 对齐状态
 	state, err := parseRefundStatus(*resp.Status)
 	if err != nil {
-		zap.L().Warn("WeChatPay parse refund status error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay parse refund status error: %w", err)
 	}
 
 	// 成功发起后状态为退款中, 等待退款通知再更新状态
@@ -425,15 +393,13 @@ func (w *WeChatPay) GetNotifyRefund(request *http.Request) (bool, *RefundResult,
 	refund, err := validateParseNotifyRequest[RefundNotifyWechat](w, request)
 	if err != nil {
 		// 如果验签未通过，或者解密失败
-		zap.L().Warn("WeChatPay verify sign error", zap.Error(err))
-		return false, nil, err
+		return false, nil, fmt.Errorf("WeChatPay verify sign error: %w", err)
 	}
 
 	// 对齐状态
 	state, err := parseRefundStatus(refund.RefundStatus)
 	if err != nil {
-		zap.L().Warn("WeChatPay parse refund status error", zap.Error(err))
-		return false, nil, err
+		return false, nil, fmt.Errorf("WeChatPay parse refund status error: %w", err)
 	}
 
 	result := &RefundResult{
@@ -461,21 +427,18 @@ func (w *WeChatPay) QueryRefund(orderID, refundID uint64) (*RefundResult, error)
 		},
 	)
 	if err != nil {
-		zap.L().Warn("WeChatPay query refund error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay query refund error: %w", err)
 	}
 
 	// 检查响应字段是否为 nil
 	if err = checkRefundFields(resp); err != nil {
-		zap.L().Warn("WeChatPay response fields are nil", zap.Error(err))
-		return nil, errors.New("response fields are nil")
+		return nil, fmt.Errorf("WeChatPay response fields are nil: %w", err)
 	}
 
 	// 对齐状态
 	state, err := parseRefundStatus(*resp.Status)
 	if err != nil {
-		zap.L().Warn("WeChatPay parse refund status error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay parse refund status error: %w", err)
 	}
 
 	result := &RefundResult{
@@ -506,8 +469,7 @@ func validateParseNotifyRequest[T any](w *WeChatPay, request *http.Request) (*T,
 		w.Conf.APIv3Key,
 	)
 	if err != nil {
-		zap.L().Warn("WeChatPay register downloader error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay register downloader error: %w", err)
 	}
 
 	// 2. 获取商户号对应的微信支付平台证书访问器
@@ -522,8 +484,7 @@ func validateParseNotifyRequest[T any](w *WeChatPay, request *http.Request) (*T,
 	_, err = handler.ParseNotifyRequest(ctx, request, t)
 	if err != nil {
 		// 如果验签未通过，或者解密失败
-		zap.L().Warn("WeChatPay verify sign error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("WeChatPay verify sign error: %w", err)
 	}
 
 	return t, nil

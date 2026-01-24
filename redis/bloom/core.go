@@ -39,8 +39,7 @@ func NewBloom(ctx context.Context, client redis.UniversalClient, redisKey string
 	// 检查布隆过滤器是否存在
 	exists, err := client.Exists(ctx, redisKey).Result()
 	if err != nil {
-		zap.L().Error("检查布隆过滤器是否存在失败", zap.String("key", redisKey), zap.Error(err))
-		return nil, fmt.Errorf("bloom filter exists check failed: %w", err)
+		return nil, fmt.Errorf("检查布隆过滤器是否存在失败 key=%s; %w", redisKey, err)
 	}
 
 	// 已存在则直接返回
@@ -62,8 +61,7 @@ func NewBloom(ctx context.Context, client redis.UniversalClient, redisKey string
 	if err != nil {
 		// 可能已被其他实例创建(竞态), 忽略 "item exists" 错误
 		if err.Error() != "ERR item exists" {
-			zap.L().Error("创建布隆过滤器失败", zap.String("key", redisKey), zap.Error(err))
-			return nil, fmt.Errorf("bloom filter create failed: %w", err)
+			return nil, fmt.Errorf("创建布隆过滤器失败 key=%s; %w", redisKey, err)
 		}
 
 		zap.L().Warn("布隆过滤器已被其他实例创建, 无需创建", zap.String("key", redisKey))
@@ -85,13 +83,12 @@ func NewBloom(ctx context.Context, client redis.UniversalClient, redisKey string
 func (b *Bloom) Add(item string) error {
 	// 判断 item 是否为空
 	if item == "" {
-		return errors.New("item cannot be empty")
+		return errors.New("元素不能为空")
 	}
 
 	_, err := b.Client.BFAdd(b.Ctx, b.RedisKey, item).Result()
 	if err != nil {
-		zap.L().Error("向布隆过滤器添加元素失败", zap.String("key", b.RedisKey), zap.String("item", item), zap.Error(err))
-		return fmt.Errorf("bloom filter add item failed: %w", err)
+		return fmt.Errorf("向布隆过滤器添加元素失败 key=%s; item=%s; %w", b.RedisKey, item, err)
 	}
 
 	return nil
@@ -106,8 +103,7 @@ func (b *Bloom) MAdd(items []string) error {
 
 	_, err := b.Client.BFMAdd(b.Ctx, b.RedisKey, items).Result()
 	if err != nil {
-		zap.L().Error("向布隆过滤器批量添加元素失败", zap.String("key", b.RedisKey), zap.Error(err))
-		return fmt.Errorf("bloom filter madd items failed: %w", err)
+		return fmt.Errorf("向布隆过滤器批量添加元素失败 key=%s; %w", b.RedisKey, err)
 	}
 
 	return nil
@@ -122,8 +118,7 @@ func (b *Bloom) Test(testStr string) (bool, error) {
 
 	exists, err := b.Client.BFExists(b.Ctx, b.RedisKey, testStr).Result()
 	if err != nil {
-		zap.L().Error("检查元素是否存在于布隆过滤器失败", zap.String("key", b.RedisKey), zap.String("item", testStr), zap.Error(err))
-		return exists, fmt.Errorf("bloom filter test item failed: %w", err)
+		return exists, fmt.Errorf("检查元素是否存在于布隆过滤器失败 key=%s; item=%s; %w", b.RedisKey, testStr, err)
 	}
 
 	return exists, nil

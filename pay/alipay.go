@@ -63,27 +63,23 @@ func NewAlipay(conf *AlipayConfig, apiPath, payBasePath string) (*Alipay, error)
 
 	// 创建 Alipay 客户端失败
 	if err != nil {
-		zap.L().Warn("create Alipay client error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("create Alipay client error: %w", err)
 	}
 
 	// 加载支付宝公钥
 	if err = client.LoadAliPayPublicKey(conf.AlipayPublicKey); err != nil {
-		zap.L().Warn("load Alipay public key error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("load Alipay public key error: %w", err)
 	}
 
 	// 设置接口内容加密密钥
 	if conf.EncryptKey != "" {
 		if err = client.SetEncryptKey(conf.EncryptKey); err != nil {
-			zap.L().Warn("set Alipay encrypt key error", zap.Error(err))
-			return nil, err
+			return nil, fmt.Errorf("set Alipay encrypt key error: %w", err)
 		}
 	}
 
 	// appPath 和 payBasePath 不为空
 	if apiPath == "" || payBasePath == "" {
-		zap.L().Warn("apiPath and payBasePath cannot be empty")
 		return nil, fmt.Errorf("apiPath and payBasePath cannot be empty")
 	}
 
@@ -132,8 +128,7 @@ func (a *Alipay) Prepay(orderID uint64, amount int64, description, returnURL str
 
 	url, err := a.Client.TradePagePay(p)
 	if err != nil {
-		zap.L().Warn("Alipay prepay error", zap.Error(err))
-		return "", err
+		return "", fmt.Errorf("alipay prepay error: %w", err)
 	}
 
 	// 打印日志确认支付宝支付链接生成成功
@@ -148,20 +143,17 @@ func (a *Alipay) GetNotifyPayment(request *http.Request) (bool, *PaymentResult, 
 	// 文档: https://github.com/smartwalle/alipay/tree/master
 	if err := request.ParseForm(); err != nil {
 		// 如果 err 不为空，则表示解析表单失败
-		zap.L().Warn("Alipay notify parse form error", zap.Error(err))
 		return false, nil, fmt.Errorf("alipay notify parse form error: %w", err)
 	}
 
 	notif, err := a.Client.DecodeNotification(request.Form)
 	if err != nil {
 		// 如果 err 不为空，则表示验签失败
-		zap.L().Warn("Alipay notify verify sign error", zap.Error(err))
 		return false, nil, fmt.Errorf("alipay notify verify sign error: %w", err)
 	}
 
 	// 为了确保支付状态正确，检查 TradeStatus
 	if notif.TradeStatus != alipay.TradeStatusSuccess && notif.TradeStatus != alipay.TradeStatusFinished {
-		zap.L().Warn("Alipay trade status not success", zap.Any("trade_status", notif.TradeStatus))
 		return false, nil, fmt.Errorf("alipay trade status not success: %s", notif.TradeStatus)
 	}
 
@@ -186,44 +178,27 @@ func (a *Alipay) GetNotifyPayment(request *http.Request) (bool, *PaymentResult, 
 func (a *Alipay) ValidateNotifyPayment(payment *PaymentResult, orderID uint64, amount int64) (bool, *PaymentResult, error) {
 	// 校验 payment 是否为 nil
 	if payment == nil {
-		zap.L().Warn("Alipay validate notify payment error: payment is nil")
 		return false, nil, fmt.Errorf("alipay validate notify payment error: payment is nil")
 	}
 
 	// 校验订单号
 	if payment.OrderID != orderID {
-		zap.L().Warn("Alipay validate notify payment error: order ID mismatch",
-			zap.Uint64("expected_order_id", orderID),
-			zap.Uint64("actual_order_id", payment.OrderID))
-
-		return false, nil, fmt.Errorf("alipay validate notify payment error: order ID mismatch")
+		return false, nil, fmt.Errorf("alipay validate notify payment error: order ID mismatch, expected %d, got %d", orderID, payment.OrderID)
 	}
 
 	// 校验金额
 	if payment.TotalAmount != amount {
-		zap.L().Warn("Alipay validate notify payment error: amount mismatch",
-			zap.Int64("expected_amount", amount),
-			zap.Int64("actual_amount", payment.TotalAmount))
-
-		return false, nil, fmt.Errorf("alipay validate notify payment error: amount mismatch")
+		return false, nil, fmt.Errorf("alipay validate notify payment error: amount mismatch, expected %d, got %d", amount, payment.TotalAmount)
 	}
 
 	// 校验商户号
 	if payment.SellerID != a.Conf.SellerID {
-		zap.L().Warn("Alipay validate notify payment error: seller ID mismatch",
-			zap.String("expected_seller_id", a.Conf.SellerID),
-			zap.String("actual_seller_id", payment.SellerID))
-
-		return false, nil, fmt.Errorf("alipay validate notify payment error: seller ID mismatch")
+		return false, nil, fmt.Errorf("alipay validate notify payment error: seller ID mismatch expected %s, got %s", a.Conf.SellerID, payment.SellerID)
 	}
 
 	// 校验应用ID
 	if payment.AppID != a.Conf.AppID {
-		zap.L().Warn("Alipay validate notify payment error: app ID mismatch",
-			zap.String("expected_app_id", a.Conf.AppID),
-			zap.String("actual_app_id", payment.AppID))
-
-		return false, nil, fmt.Errorf("alipay validate notify payment error: app ID mismatch")
+		return false, nil, fmt.Errorf("alipay validate notify payment error: app ID mismatch, expected %s, got %s", a.Conf.AppID, payment.AppID)
 	}
 
 	return true, payment, nil
@@ -237,8 +212,7 @@ func (a *Alipay) QueryPayment(orderID uint64) (*PaymentResult, error) {
 
 	resultQuery, err := a.Client.TradeQuery(context.Background(), p)
 	if err != nil {
-		zap.L().Warn("Alipay query payment error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("alipay query payment error: %w", err)
 	}
 
 	// 支付结果
@@ -272,7 +246,6 @@ func (a *Alipay) QueryPayment(orderID uint64) (*PaymentResult, error) {
 	case alipay.TradeStatusFinished: // 交易结束，不可退款
 		state = TradeStatePaid
 	default:
-		zap.L().Warn("Alipay trade status not recognized", zap.Any("trade_status", resultQuery.TradeStatus))
 		return nil, fmt.Errorf("alipay trade status not recognized: %s", resultQuery.TradeStatus)
 	}
 
@@ -290,7 +263,6 @@ func (a *Alipay) CloseOrder(orderID uint64) error {
 
 	result, err := a.Client.TradeClose(context.Background(), p)
 	if err != nil {
-		zap.L().Warn("Alipay query payment error", zap.Error(err))
 		return fmt.Errorf("alipay cancel order error: %w", err)
 	}
 
@@ -303,7 +275,6 @@ func (a *Alipay) CloseOrder(orderID uint64) error {
 
 	// 如果返回的 code 是失败状态，记录日志并返回错误
 	if result.Code.IsFailure() {
-		zap.L().Warn("Alipay cancel order failed", zap.Any("code", result.Code), zap.String("msg", result.Msg))
 		return fmt.Errorf("alipay cancel order failed: code %s, msg %s", result.Code, result.Msg)
 	}
 
@@ -339,12 +310,10 @@ func (a *Alipay) Refund(orderID, refundID uint64, amount, refundAmount int64, re
 
 	result, err := a.Client.TradeRefund(context.Background(), p)
 	if err != nil {
-		zap.L().Warn("Alipay refund error", zap.Error(err))
 		return nil, fmt.Errorf("alipay refund error: %w", err)
 	}
 
 	if result.Code.IsFailure() {
-		zap.L().Warn("Alipay refund failed", zap.Any("code", result.Code), zap.String("msg", result.Msg))
 		return nil, fmt.Errorf("alipay refund failed: code %s, msg %s", result.Code, result.Msg)
 	}
 
@@ -387,19 +356,16 @@ func (a *Alipay) QueryRefund(orderID, refundID uint64) (*RefundResult, error) {
 
 	resultQuery, err := a.Client.TradeFastPayRefundQuery(context.Background(), p)
 	if err != nil {
-		zap.L().Warn("Alipay query refund error", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("alipay query refund error: %w", err)
 	}
 
 	// 处理没有查询到订单的情况
 	if resultQuery.Code.IsFailure() {
-		zap.L().Warn("支付宝退款查询，该订单不存在", zap.Uint64("order_id", orderID), zap.Uint64("refund_id", refundID))
 		return nil, fmt.Errorf("支付宝退款查询，该订单不存在, 订单id: %d, 退款id: %d", orderID, refundID)
 	}
 
 	// 状态对齐
 	if resultQuery.RefundStatus != AlipayTradeTypeRefundSuccess {
-		zap.L().Warn("Alipay refund status not recognized", zap.Any("refund_status", resultQuery.RefundStatus))
 		return nil, fmt.Errorf("alipay refund status not recognized: %s", resultQuery.RefundStatus)
 	}
 

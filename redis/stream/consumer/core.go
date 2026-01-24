@@ -276,7 +276,7 @@ func (c *BaseConsumer[T]) processClaimedMessages(claimedMessages []redis.XMessag
 	for _, msg := range claimedMessages {
 		if err := c.ProcessMessage(msg); err != nil {
 			// 只记录错误日志, 继续处理其他消息
-			zap.L().Error("处理 pending 消息失败, 跳过", zap.String("msgID", msg.ID), zap.Error(err))
+			zap.L().Warn("处理 pending 消息失败, 跳过", zap.String("msgID", msg.ID), zap.Error(err))
 			continue
 		}
 	}
@@ -316,7 +316,7 @@ func (c *BaseConsumer[T]) OnlineMessage() error {
 	for _, entry := range entries[0].Messages {
 		if err := c.ProcessMessage(entry); err != nil {
 			// 只记录错误日志, 继续处理其他消息
-			zap.L().Error("处理在线消息失败, 跳过", zap.String("msgID", entry.ID), zap.String("consumer", c.ConsumerName), zap.Error(err))
+			zap.L().Warn("处理在线消息失败, 跳过", zap.String("msgID", entry.ID), zap.String("consumer", c.ConsumerName), zap.Error(err))
 		}
 	}
 
@@ -338,7 +338,7 @@ func (c *BaseConsumer[T]) startPendingLoop(ctx context.Context) {
 		case <-ticker.C:
 			if err := c.PendingMessage(); err != nil {
 				// 只记录错误日志, 不中断循环
-				zap.L().Error("处理 pending 消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
+				zap.L().Warn("处理 pending 消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
 			}
 		}
 	}
@@ -360,9 +360,7 @@ func (c *BaseConsumer[T]) startOnlineMessageLoop(ctx context.Context) error {
 					return nil
 				}
 
-				zap.L().Error("拉取在线消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
-
-				return err
+				return fmt.Errorf("拉取在线消息失败: consumer=%s; %w", c.ConsumerName, err)
 			}
 		}
 	}
@@ -395,10 +393,7 @@ func (c *BaseConsumer[T]) AckMessage(msgID string, valueStruct *T, isSuccess boo
 	// 签收消息
 	if err := c.Rdb.XAck(c.Ctx, c.StreamName, c.GroupName, msgID).Err(); err != nil {
 		// 签收失败
-		msg = fmt.Sprintf("ack failed, %s", msg)
-		zap.L().Error(msg, zap.Any("value", valueStruct), zap.Error(err))
-
-		return err
+		return fmt.Errorf("签收消息失败: msg=%s; value=%+v; %w", msg, valueStruct, err)
 	}
 
 	// 在缓存中更新消息 ID 状态为已处理
@@ -409,7 +404,7 @@ func (c *BaseConsumer[T]) AckMessage(msgID string, valueStruct *T, isSuccess boo
 	}
 
 	// 签收成功
-	msg = fmt.Sprintf("ack success, %s", msg)
+	msg = fmt.Sprintf("签收消息成功, %s", msg)
 	zap.L().Info(msg, zap.Any("value", valueStruct))
 
 	return nil

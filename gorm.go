@@ -52,8 +52,7 @@ func Transaction(db *gorm.DB, txFunc func(tx *gorm.DB) error) (err error) {
 		spID := fmt.Sprintf("sp%d", time.Now().UnixNano())
 
 		if err = db.SavePoint(spID).Error; err != nil {
-			zap.L().Error("创建 SavePoint 失败", zap.String("SavePoint", spID), zap.Error(err))
-			return err
+			return fmt.Errorf("创建 SavePoint %s 失败: %w", spID, err)
 		}
 
 		// 统一的 defer 回滚逻辑
@@ -64,8 +63,7 @@ func Transaction(db *gorm.DB, txFunc func(tx *gorm.DB) error) (err error) {
 
 		// 执行事务逻辑, 复用当前事务连接
 		if err = txFunc(db); err != nil {
-			zap.L().Error("执行嵌套事务逻辑失败", zap.Error(err))
-			return err
+			return fmt.Errorf("嵌套事务执行失败: %w", err)
 		}
 
 		// 嵌套事务不需要 Commit, SavePoint 会随外层事务一起提交
@@ -77,8 +75,7 @@ func Transaction(db *gorm.DB, txFunc func(tx *gorm.DB) error) (err error) {
 	// 非嵌套场景: 开启新事务
 	tx := db.Begin()
 	if tx.Error != nil {
-		zap.L().Error("开启事务失败", zap.Error(tx.Error))
-		return tx.Error
+		return fmt.Errorf("开启事务失败: %w", tx.Error)
 	}
 
 	// 统一的 defer 回滚逻辑
@@ -89,14 +86,12 @@ func Transaction(db *gorm.DB, txFunc func(tx *gorm.DB) error) (err error) {
 
 	// 执行 txFunc 具体的事务处理逻辑
 	if err = txFunc(tx); err != nil {
-		zap.L().Error("执行事务逻辑失败", zap.Error(err))
-		return err
+		return fmt.Errorf("执行事务逻辑失败: %w", err)
 	}
 
 	// 提交事务
 	if err = tx.Commit().Error; err != nil {
-		zap.L().Error("提交事务失败", zap.Error(err))
-		return err
+		return fmt.Errorf("提交事务失败: %w", err)
 	}
 
 	// 只有完全成功才设为 false, 确保 defer 中不会回滚

@@ -11,8 +11,6 @@ package cron
 
 import (
 	"fmt"
-
-	"go.uber.org/zap"
 )
 
 // 定时任务变量
@@ -30,18 +28,22 @@ func RegisterTask(r TaskRegistrar) {
 }
 
 // RegisterAllTasks 执行所有已注册的任务注册函数
-func RegisterAllTasks() {
+func RegisterAllTasks() error {
 	for _, r := range registrars {
 		if err := r(); err != nil {
-			zap.L().Error("注册定时任务失败", zap.Error(err))
+			return fmt.Errorf("注册定时任务失败: %w", err)
 		}
 	}
+
+	return nil
 }
 
 // Init 初始化定时任务
 func Init() error {
 	// 注册所有任务
-	RegisterAllTasks()
+	if err := RegisterAllTasks(); err != nil {
+		return err
+	}
 
 	// 创建任务管理器
 	manager := NewTaskManager()
@@ -49,20 +51,17 @@ func Init() error {
 	for _, task := range Tasks {
 		// 定时任务的cron表达式配置不能为空
 		if task.Spec == "" {
-			zap.L().Error("定时任务的cron表达式配置不能为空", zap.String("任务名称", string(task.Name)))
 			return fmt.Errorf("定时任务的cron表达式配置不能为空，任务名称：%s", string(task.Name))
 		}
 
 		err := manager.AddTask(task)
 		if err != nil {
-			zap.L().Error("添加任务错误", zap.String("任务名称", string(task.Name)), zap.Error(err))
-			return err
+			return fmt.Errorf("添加任务 %s 失败: %w", string(task.Name), err)
 		}
 	}
 
 	// 启动任务管理器
 	manager.Start()
-	zap.L().Info("定时任务启动成功")
 
 	return nil
 }
