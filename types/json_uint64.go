@@ -39,13 +39,13 @@ func (u *JSONUint64) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON 实现 JSONUint64 的 json.Marshaler 接口。
-func (u *JSONUint64) MarshalJSON() ([]byte, error) {
-	return json.Marshal(strconv.FormatUint(uint64(*u), 10))
+func (u JSONUint64) MarshalJSON() ([]byte, error) {
+	return json.Marshal(strconv.FormatUint(uint64(u), 10))
 }
 
 // 将 JSONUint64 转换为 string
-func (u *JSONUint64) ToString() string {
-	return strconv.FormatUint(uint64(*u), 10)
+func (u JSONUint64) ToString() string {
+	return strconv.FormatUint(uint64(u), 10)
 }
 
 // JSONUint64Slice 自定义类型，以 uint64 切片形式解析字符串切片。
@@ -80,9 +80,9 @@ func (u *JSONUint64Slice) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON 实现 JSONUint64Slice 的 json.Marshaler 接口。
-func (u *JSONUint64Slice) MarshalJSON() ([]byte, error) {
-	strSlice := make([]string, len(*u))
-	for i, v := range *u {
+func (u JSONUint64Slice) MarshalJSON() ([]byte, error) {
+	strSlice := make([]string, len(u))
+	for i, v := range u {
 		strSlice[i] = strconv.FormatUint(v, 10)
 	}
 
