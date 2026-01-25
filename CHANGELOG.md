@@ -5,6 +5,39 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.3.0"></a>
+
+## [v0.3.0] - 2026-01-25
+
+### Feat
+
+- 增加分布式锁获取失败错误
+
+### ♻️ Refactor
+
+- code msg 实现重构
+- 完善注释
+
+### ⚡️ Perf
+
+- 移除一些 zap 日志点
+
+### ✨ Feat
+
+- 增加最小消费金额函数
+- 增加消息展示
+- ValidateCurrency
+
+### 🐞 Fix
+
+- 序列化使用指针
+- **utils:** 值接收器用作 Getter 指针接收器用作 Setter
+
+### 📝 Docs
+
+- add .markdownlint.yaml
+- 使用 git-chglog
+
 <a name="v0.2.2"></a>
 
 ## [v0.2.2] - 2026-01-18
@@ -37,6 +70,7 @@
 
 - 工具库首发。
 
+[v0.3.0]: https://github.com/jiaopengzi/go-utils/compare/v0.2.2...v0.3.0
 [v0.2.2]: https://github.com/jiaopengzi/go-utils/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/jiaopengzi/go-utils/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/jiaopengzi/go-utils/compare/v0.1.0...v0.2.0
