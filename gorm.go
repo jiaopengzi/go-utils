@@ -20,8 +20,8 @@ import (
 // ColCount 是一个常量, 用于 SQL 查询中统计行数
 const ColCount = "COUNT(*) as count"
 
-// CheckGormUpdate 检查 gorm 更新操作的结果
-func CheckGormUpdate(result *gorm.DB) error {
+// CheckGormRowsAffected 检查 GORM 操作结果的 RowsAffected 字段
+func CheckGormRowsAffected(result *gorm.DB) error {
 	// 检查是否成功更新了行
 	if result.Error != nil {
 		return result.Error
@@ -29,7 +29,7 @@ func CheckGormUpdate(result *gorm.DB) error {
 
 	if result.RowsAffected == 0 {
 		// 没有更新任何行
-		return ErrUpdateRowsAffectedZero
+		return ErrGormRowsAffectedZero
 	}
 
 	return nil
