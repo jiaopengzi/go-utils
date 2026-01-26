@@ -8,6 +8,8 @@
 
 package model
 
+import "fmt"
+
 type Currency int // 订单货币类型
 
 // 定义订单货币类型常量
@@ -32,4 +34,16 @@ var CurrencySymbols = map[Currency]string{
 	CurrencyTWD: "NT$",
 	CurrencySGD: "S$",
 	CurrencyRUB: "₽",
+}
+
+// AmountFenToYuan 金额从分转换为元, 保留两位小数
+func (c Currency) AmountFenToYuan(amountFen int64) string {
+	amountYuan := float64(amountFen) / 100.0
+
+	symbol, exists := CurrencySymbols[c]
+	if !exists {
+		symbol = ""
+	}
+
+	return fmt.Sprintf("%s%.2f", symbol, amountYuan)
 }
