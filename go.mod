@@ -3,6 +3,7 @@ module github.com/jiaopengzi/go-utils
 go 1.25.6
 
 require (
+	filippo.io/edwards25519 v1.1.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
 	github.com/elastic/go-elasticsearch/v9 v9.2.1
 	github.com/gin-gonic/gin v1.11.0
