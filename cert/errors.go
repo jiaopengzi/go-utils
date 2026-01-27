@@ -1,3 +1,11 @@
+//
+// FilePath    : go-utils\cert\errors.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : 错误定义
+//
+
 package cert
 
 import "errors"

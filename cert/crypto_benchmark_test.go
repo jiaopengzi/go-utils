@@ -1,3 +1,11 @@
+//
+// FilePath    : go-utils\cert\crypto_benchmark_test.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : Crypto 性能基准测试
+//
+
 package cert
 
 import (

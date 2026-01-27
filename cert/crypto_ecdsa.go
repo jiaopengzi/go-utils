@@ -1,15 +1,22 @@
+//
+// FilePath    : go-utils\cert\crypto_ecdsa.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : ECDSA 证书加密操作器
+//
+
 package cert
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"io"
 	"math/big"
+
+	utils "github.com/jiaopengzi/go-utils"
 )
 
 // ECDSACryptoOperator ECDSA 证书加密操作器.
@@ -126,30 +133,15 @@ func (e *ECDSACryptoOperator) HybridEncrypt(plaintext []byte) ([]byte, []byte, e
 	aesKey := sha256.Sum256(sharedSecret)
 
 	// 使用 AES-GCM 加密数据.
-	block, err := aes.NewCipher(aesKey[:])
+	ciphertext, nonce, err := utils.GCMEncrypt(aesKey[:], plaintext)
 	if err != nil {
-		return nil, nil, fmt.Errorf("create aes cipher failed: %w", err)
-	}
-
-	// 创建 GCM 模式.
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, nil, fmt.Errorf("create gcm failed: %w", err)
-	}
-
-	// 生成随机 nonce.
-	nonce := make([]byte, gcm.NonceSize())
-	if _, randErr := io.ReadFull(rand.Reader, nonce); randErr != nil {
-		return nil, nil, fmt.Errorf("generate nonce failed: %w", randErr)
+		return nil, nil, err
 	}
 
 	// 如果 plaintext 为 nil, 只返回 nonce.
 	if plaintext == nil {
 		return nil, nonce, nil
 	}
-
-	// 加密数据.
-	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
 
 	// 获取临时公钥字节.
 	ephemeralPubBytes := ephemeralKey.PublicKey().Bytes()
@@ -219,31 +211,20 @@ func (e *ECDSACryptoOperator) HybridDecrypt(encryptedPackage []byte) ([]byte, er
 	// 使用 SHA-256 派生 AES 密钥.
 	aesKey := sha256.Sum256(sharedSecret)
 
-	// 使用 AES-GCM 解密数据.
-	block, err := aes.NewCipher(aesKey[:])
-	if err != nil {
-		return nil, fmt.Errorf("create aes cipher failed: %w", err)
-	}
-
-	// 创建 GCM 模式.
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("create gcm failed: %w", err)
-	}
-
 	// 检查剩余数据长度.
-	if len(remaining) < gcm.NonceSize() {
+	nonceSize := utils.GCMNonceSize()
+	if len(remaining) < nonceSize {
 		return nil, ErrInvalidCiphertext
 	}
 
 	// 提取 nonce 和密文.
-	nonce := remaining[:gcm.NonceSize()]
-	ciphertext := remaining[gcm.NonceSize():]
+	nonce := remaining[:nonceSize]
+	ciphertext := remaining[nonceSize:]
 
-	// 解密数据.
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	// 使用 AES-GCM 解密数据.
+	plaintext, err := utils.GCMDecrypt(aesKey[:], nonce, ciphertext)
 	if err != nil {
-		return nil, fmt.Errorf("decrypt data failed: %w", err)
+		return nil, err
 	}
 
 	return plaintext, nil

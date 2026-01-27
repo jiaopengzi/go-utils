@@ -54,6 +54,7 @@
         "noprint",
         "notif",
         "NOTPAY",
+        "OAEP",
         "PAYERROR",
         "PKCS",
         "Presign",

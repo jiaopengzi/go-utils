@@ -1,4 +1,11 @@
-// Package cert 提供 X.509 证书生成, 签发, 验证和管理功能.
+//
+// FilePath    : go-utils\cert\operator.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : 证书加密操作器定义
+//
+
 package cert
 
 import (

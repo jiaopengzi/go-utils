@@ -1,3 +1,11 @@
+//
+// FilePath    : go-utils\cert\key.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : 私钥相关功能
+//
+
 package cert
 
 import (

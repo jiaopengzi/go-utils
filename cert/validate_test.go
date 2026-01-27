@@ -1,3 +1,11 @@
+//
+// FilePath    : go-utils\cert\validate_test.go
+// Author      : jiaopengzi
+// Blog        : https://jiaopengzi.com
+// Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
+// Description : 证书验证功能单元测试
+//
+
 package cert
 
 import (
