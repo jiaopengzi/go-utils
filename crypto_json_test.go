@@ -1,9 +1,9 @@
 //
-// FilePath    : go-utils\encrypt_json_test.go
+// FilePath    : go-utils\crypto_json_test.go
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
-// Description : 单测
+// Description : JSON 加密解密功能单元测试
 //
 
 package utils

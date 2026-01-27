@@ -1,5 +1,5 @@
 //
-// FilePath    : go-utils\encrypt.go
+// FilePath    : go-utils\crypto.go
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
