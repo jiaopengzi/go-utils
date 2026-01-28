@@ -5,6 +5,30 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.4.0"></a>
+
+## [v0.4.0] - 2026-01-28
+
+### ♻️ Refactor
+
+- **cert:** 抽离工具到 utils 模块, 添加文件头
+- **utils:** 加密相关统一命名为 crypto
+
+### ✨ Feat
+
+- **cert:** 封装易用函数
+- **cert:** 增加证书相关功能
+- **model:** 实现 AmountFenToYuan 方法
+- **utils:** 字符串相关的工具函数
+
+### 💥
+
+- **utils:** CheckGormRowsAffected 更通用命名
+
+### 🔧 Chore
+
+- add res rule skill
+
 <a name="v0.3.0"></a>
 
 ## [v0.3.0] - 2026-01-25
@@ -70,6 +94,7 @@
 
 - 工具库首发。
 
+[v0.4.0]: https://github.com/jiaopengzi/go-utils/compare/v0.3.0...v0.4.0
 [v0.3.0]: https://github.com/jiaopengzi/go-utils/compare/v0.2.2...v0.3.0
 [v0.2.2]: https://github.com/jiaopengzi/go-utils/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/jiaopengzi/go-utils/compare/v0.2.0...v0.2.1
