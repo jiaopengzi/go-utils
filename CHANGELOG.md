@@ -5,6 +5,18 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.5.0"></a>
+
+## [v0.5.0] - 2026-01-29
+
+### 💥 Boom
+
+- **cert:** 将 cert 单独构建一个repo
+
+### 📦 Build
+
+- 将 skill 抽离到工作区共享
+
 <a name="v0.4.0"></a>
 
 ## [v0.4.0] - 2026-01-28
@@ -94,6 +106,7 @@
 
 - 工具库首发。
 
+[v0.5.0]: https://github.com/jiaopengzi/go-utils/compare/v0.4.0...v0.5.0
 [v0.4.0]: https://github.com/jiaopengzi/go-utils/compare/v0.3.0...v0.4.0
 [v0.3.0]: https://github.com/jiaopengzi/go-utils/compare/v0.2.2...v0.3.0
 [v0.2.2]: https://github.com/jiaopengzi/go-utils/compare/v0.2.1...v0.2.2
