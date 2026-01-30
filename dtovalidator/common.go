@@ -10,6 +10,7 @@ package dtovalidator
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jiaopengzi/go-utils/model"
@@ -65,6 +66,10 @@ func init() {
 	RegisterValidator("ValidateCurrency", ValidatorEntry{
 		ValidatorFunc: ValidateCurrency,
 		ErrMsg:        "请输入正确的货币类型.",
+	})
+	RegisterValidator("ValidateCSR", ValidatorEntry{
+		ValidatorFunc: ValidateCSR,
+		ErrMsg:        "请输入正确的证书请求(CSR).",
 	})
 }
 
@@ -267,4 +272,58 @@ func ValidateCurrency(fl validator.FieldLevel) bool {
 		int64(model.CurrencySGD),
 		int64(model.CurrencyRUB),
 	)
+}
+
+// ValidateCSR 校验证书请求(CSR)
+// -----BEGIN CERTIFICATE REQUEST-----
+// MIG6MG4CAQAwFDESMBAGA1UEAxMJbG9jYWxob3N0MCowBQYDK2VwAyEAr2h/kLhK
+// -----END CERTIFICATE REQUEST-----
+func ValidateCSR(fl validator.FieldLevel) bool {
+	csr := fl.Field().String()
+	if csr == "" {
+		return false
+	}
+
+	const (
+		csrBegin = "-----BEGIN CERTIFICATE REQUEST-----"
+		csrEnd   = "-----END CERTIFICATE REQUEST-----"
+	)
+
+	// 判断是否 以 -----BEGIN CERTIFICATE REQUEST----- 开头
+	if !stringHasPrefixIgnoreCase(csr, csrBegin) {
+		return false
+	}
+
+	// 判断是否 以 -----END CERTIFICATE REQUEST----- 结尾
+	if !stringHasSuffixIgnoreCase(csr, csrEnd) {
+		return false
+	}
+
+	return true
+}
+
+// stringHasPrefixIgnoreCase 判断 s 是否以 prefix 开头，忽略大小写
+func stringHasPrefixIgnoreCase(s, prefix string) bool {
+	if prefix == "" {
+		return true
+	}
+
+	if len(prefix) > len(s) {
+		return false
+	}
+
+	return strings.EqualFold(s[:len(prefix)], prefix)
+}
+
+// stringHasSuffixIgnoreCase 判断 s 是否以 suffix 结尾，忽略大小写
+func stringHasSuffixIgnoreCase(s, suffix string) bool {
+	if suffix == "" {
+		return true
+	}
+
+	if len(suffix) > len(s) {
+		return false
+	}
+
+	return strings.EqualFold(s[len(s)-len(suffix):], suffix)
 }
