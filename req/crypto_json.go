@@ -1,36 +1,34 @@
 //
-// FilePath    : go-utils\crypto_json.go
+// FilePath    : go-utils\req\crypto_json.go
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
 // Description : 加密和解密 JSON 数据
 //
 
-package utils
+package req
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/jiaopengzi/cert/core"
+	utilC "github.com/jiaopengzi/cert/utils"
+	"github.com/jiaopengzi/go-utils"
 )
 
-// EncryptJSON 使用 Base64 的密钥 key, 加密任意结构体 data, 并返回 Base64 编码的密文和 nonce.
+// EncryptJSON 使用证书 certPEM 加密任意结构体 data, 并返回 Base64 编码的密文和 nonce.
 // 如果 data 为 nil, 则返回空密文和有效的 nonce.
-func EncryptJSON(data any, key string) (string, string, error) {
-	// 将 Base64 密钥解码为字节切片.
-	keyBytes, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return "", "", fmt.Errorf("base64 decode key: %w", err)
-	}
-
+func EncryptJSON(data any, certPEM string) (string, string, error) {
 	// 如果 data 为 nil, 生成 nonce 并返回空密文.
-	if IsInterfaceNil(data) {
-		nonce, errN := GenerateGCMNonce()
+	if utils.IsInterfaceNil(data) {
+		nonce, errN := utilC.GenerateGCMNonce()
 		if errN != nil {
 			return "", "", fmt.Errorf("generate nonce: %w", errN)
 		}
 
-		return "", base64.StdEncoding.EncodeToString(nonce), nil
+		return "", base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(nonce), nil
 	}
 
 	// 序列化为 JSON.
@@ -40,20 +38,20 @@ func EncryptJSON(data any, key string) (string, string, error) {
 	}
 
 	// 使用 GCM 加密, nonce 前置到密文中.
-	ciphertext, nonce, err := GCMEncryptWithNoncePrepended(keyBytes, jsonBytes)
+	ciphertext, nonce, err := core.EncryptWithCert(certPEM, jsonBytes)
 	if err != nil {
 		return "", "", fmt.Errorf("encrypt: %w", err)
 	}
 
 	// 返回 Base64 编码的密文和 nonce.
-	return base64.StdEncoding.EncodeToString(ciphertext), base64.StdEncoding.EncodeToString(nonce), nil
+	return base64.StdEncoding.EncodeToString(ciphertext), base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(nonce), nil
 }
 
-// DecryptJSON 使用 Base64 的密钥 key, 解密 Base64 编码的密文 encryptedB64 到目标结构 dst, dst 应为指针类型.
+// DecryptJSON 使用证书私钥 keyPEM 解密 Base64 编码的密文 encryptedB64 到目标结构 dst, dst 应为指针类型.
 // 如果 encryptedB64 为空字符串, 则直接返回 nil.
-func DecryptJSON(encryptedB64 string, key string, dst any) error {
+func DecryptJSON(encryptedB64, keyPEM string, dst any) error {
 	// 如果 dst 不是指针类型, 返回错误.
-	if !IsPointer(dst) {
+	if !utils.IsPointer(dst) {
 		return fmt.Errorf("dst %T must be a pointer", dst)
 	}
 
@@ -68,14 +66,8 @@ func DecryptJSON(encryptedB64 string, key string, dst any) error {
 		return fmt.Errorf("base64 decode: %w", err)
 	}
 
-	// 将 Base64 密钥解码为字节切片.
-	keyBytes, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return fmt.Errorf("base64 decode key: %w", err)
-	}
-
 	// 使用 GCM 解密, nonce 从密文前缀提取.
-	jsonBytes, err := GCMDecryptWithNoncePrepended(keyBytes, ciphertext)
+	jsonBytes, err := core.DecryptWithKey(keyPEM, ciphertext)
 	if err != nil {
 		return fmt.Errorf("decrypt: %w", err)
 	}
