@@ -17,7 +17,7 @@ import (
 )
 
 // GenerateHashByFileContent 通过文件内容 file 生成哈希值, 可通过 WithAlgorithm 选项指定哈希算法
-func GenerateHashByFileContent(file *bytes.Reader, opts ...SignOptionFunc) (string, error) {
+func GenerateHashByFileContent(file *bytes.Reader, opts ...HAOptionFunc) (string, error) {
 	// 根据算法生成哈希对象
 	hasher := GenerateHasher(opts...)
 
@@ -41,7 +41,7 @@ func GenerateHashByFileContent(file *bytes.Reader, opts ...SignOptionFunc) (stri
 }
 
 // GenerateHashByFilePath 通过 filePath 生成哈希值, 可通过 WithAlgorithm 选项指定哈希算法
-func GenerateHashByFilePath(filePath string, opts ...SignOptionFunc) (string, error) {
+func GenerateHashByFilePath(filePath string, opts ...HAOptionFunc) (string, error) {
 	// 打开文件
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -71,7 +71,7 @@ func GenerateHashByFilePath(filePath string, opts ...SignOptionFunc) (string, er
 }
 
 // GenerateIncrementalHash 逐个分片复制内容到哈希对象, 然后增量计算哈希值, 可通过 WithAlgorithm 选项指定哈希算法
-func GenerateIncrementalHash(chunks []io.Reader, opts ...SignOptionFunc) (string, error) {
+func GenerateIncrementalHash(chunks []io.Reader, opts ...HAOptionFunc) (string, error) {
 	// 根据算法生成哈希对象
 	hasher := GenerateHasher(opts...)
 
@@ -91,7 +91,7 @@ func GenerateIncrementalHash(chunks []io.Reader, opts ...SignOptionFunc) (string
 }
 
 // GenerateIncrementalHashFromFilePaths 根据 filePaths 逐个分片复制内容到哈希对象, 然后增量计算哈希值, 可通过 WithAlgorithm 选项指定哈希算法
-func GenerateIncrementalHashFromFilePaths(filePaths []string, opts ...SignOptionFunc) (string, error) {
+func GenerateIncrementalHashFromFilePaths(filePaths []string, opts ...HAOptionFunc) (string, error) {
 	var readers []io.Reader
 
 	var files []*os.File
@@ -125,7 +125,7 @@ func GenerateIncrementalHashFromFilePaths(filePaths []string, opts ...SignOption
 }
 
 // CheckContentHash 根据文件内容 file 检查哈希值是否匹配目标哈希值 targetHash, 可通过 WithAlgorithm 选项指定哈希算法
-func CheckContentHash(file *bytes.Reader, targetHash string, opts ...SignOptionFunc) (bool, error) {
+func CheckContentHash(file *bytes.Reader, targetHash string, opts ...HAOptionFunc) (bool, error) {
 	// 生成哈希值
 	hashStr, err := GenerateHashByFileContent(file, opts...)
 	if err != nil {
@@ -141,7 +141,7 @@ func CheckContentHash(file *bytes.Reader, targetHash string, opts ...SignOptionF
 }
 
 // GenerateHashByStrContent 通过字符串 生成哈希值, 可通过 WithAlgorithm 选项指定哈希算法
-func GenerateHashByStrContent(str string, opts ...SignOptionFunc) (string, error) {
+func GenerateHashByStrContent(str string, opts ...HAOptionFunc) (string, error) {
 	// 根据算法生成哈希对象
 	hasher := GenerateHasher(opts...)
 

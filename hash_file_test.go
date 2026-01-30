@@ -20,7 +20,7 @@ func TestGenerateHashByFileContent(t *testing.T) {
 	tests := []struct {
 		name    string
 		content []byte
-		opts    []SignOptionFunc
+		opts    []HAOptionFunc
 		wantErr bool
 	}{
 		{

@@ -24,17 +24,17 @@ const (
 	SHA512 HashAlgorithm = "SHA-512"
 )
 
-// SignOption 签名选项
-type SignOption struct {
+// HAOption 签名选项
+type HAOption struct {
 	Algorithm HashAlgorithm
 }
 
-// SignOptionFunc 签名选项函数
-type SignOptionFunc func(*SignOption)
+// HAOptionFunc 签名选项函数
+type HAOptionFunc func(*HAOption)
 
 // WithAlgorithm 设置哈希算法
-func WithAlgorithm(alg HashAlgorithm) SignOptionFunc {
-	return func(o *SignOption) {
+func WithAlgorithm(alg HashAlgorithm) HAOptionFunc {
+	return func(o *HAOption) {
 		o.Algorithm = alg
 	}
 }
@@ -52,8 +52,8 @@ func getHashFunc(alg HashAlgorithm) func() hash.Hash {
 }
 
 // GenerateHasher 生成哈希对象, 可通过 WithAlgorithm 选项指定哈希算法
-func GenerateHasher(opts ...SignOptionFunc) hash.Hash {
-	opt := &SignOption{
+func GenerateHasher(opts ...HAOptionFunc) hash.Hash {
+	opt := &HAOption{
 		Algorithm: SHA256, // 默认使用 SHA256
 	}
 
