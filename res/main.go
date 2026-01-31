@@ -24,7 +24,7 @@ const (
 	KeyRequestID = "RequestID" // 请求ID
 	KeyUserID    = "UserID"    // 用户ID
 	KeyPostID    = "PostID"    // 文章ID
-	KeyCert      = "Cert"      // 证书
+	KeyUserCert  = "UserCert"  // 用户证书
 )
 
 // enableResponseBody 是否记录响应体到日志
