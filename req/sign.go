@@ -66,7 +66,7 @@ func (o *SignOptions) Sign() error {
 	signData := o.GetSignData()
 
 	// 计算签名
-	signature, err := core.SignData(o.Cert, signData)
+	signature, err := core.SignData(o.CertKey, signData)
 	if err != nil {
 		return err
 	}

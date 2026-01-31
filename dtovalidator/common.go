@@ -279,7 +279,7 @@ func ValidateCurrency(fl validator.FieldLevel) bool {
 // MIG6MG4CAQAwFDESMBAGA1UEAxMJbG9jYWxob3N0MCowBQYDK2VwAyEAr2h/kLhK
 // -----END CERTIFICATE REQUEST-----
 func ValidateCSR(fl validator.FieldLevel) bool {
-	csr := fl.Field().String()
+	csr := strings.TrimSpace(fl.Field().String())
 	if csr == "" {
 		return false
 	}
