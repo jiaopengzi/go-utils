@@ -103,3 +103,15 @@ func RemoveDuplicateElement(list []string) []string {
 
 	return result
 }
+
+// ReverseSlice 传入一个切片, 然后倒序输出该切片
+func ReverseSlice[T any](s []T) []T {
+	n := len(s)
+	reversed := make([]T, n)
+
+	for i := range n {
+		reversed[i] = s[n-1-i]
+	}
+
+	return reversed
+}

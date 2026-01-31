@@ -10,6 +10,7 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -93,5 +94,36 @@ func TestDifference_ListBShorterThanCPUs(t *testing.T) {
 	result := Difference(listA, listB)
 	if !IsSlicesEqual(result, expected) {
 		t.Errorf("Expected %v, got %v", expected, result)
+	}
+}
+
+func TestReverseSlice_Empty(t *testing.T) {
+	var s []int
+	r := ReverseSlice(s)
+	if len(r) != 0 {
+		t.Fatalf("expected empty slice, got %v", r)
+	}
+}
+
+func TestReverseSlice_Single(t *testing.T) {
+	s := []string{"a"}
+	r := ReverseSlice(s)
+	if !reflect.DeepEqual(r, []string{"a"}) {
+		t.Fatalf("expected %v, got %v", []string{"a"}, r)
+	}
+	if !reflect.DeepEqual(s, []string{"a"}) {
+		t.Fatalf("original modified: %v", s)
+	}
+}
+
+func TestReverseSlice_Multiple(t *testing.T) {
+	s := []int{1, 2, 3, 4, 5}
+	r := ReverseSlice(s)
+	expected := []int{5, 4, 3, 2, 1}
+	if !reflect.DeepEqual(r, expected) {
+		t.Fatalf("expected %v, got %v", expected, r)
+	}
+	if !reflect.DeepEqual(s, []int{1, 2, 3, 4, 5}) {
+		t.Fatalf("original modified: %v", s)
 	}
 }
