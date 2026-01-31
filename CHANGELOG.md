@@ -5,6 +5,26 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.6.0"></a>
+
+## [v0.6.0] - 2026-01-29
+
+### ✨ Feat
+
+- 增加校验函数 ValidateCSR
+- **utils:** 增加 list 工具函数
+- **utils:** byte 工具函数
+
+### 🐞 Fix
+
+- 修复已知 bug
+
+### 💥 Boom
+
+- **req:** 将对称加密修改为非对称加密
+- **res:** Cert 规范为 UserCert
+- **utils:** SignOption 更新为更通用的 HAOption
+
 <a name="v0.5.0"></a>
 
 ## [v0.5.0] - 2026-01-29
@@ -106,6 +126,7 @@
 
 - 工具库首发。
 
+[v0.6.0]: https://github.com/jiaopengzi/go-utils/compare/v0.5.0...v0.6.0
 [v0.5.0]: https://github.com/jiaopengzi/go-utils/compare/v0.4.0...v0.5.0
 [v0.4.0]: https://github.com/jiaopengzi/go-utils/compare/v0.3.0...v0.4.0
 [v0.3.0]: https://github.com/jiaopengzi/go-utils/compare/v0.2.2...v0.3.0
