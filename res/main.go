@@ -182,3 +182,44 @@ func CheckRequestID(c *gin.Context) ([]zap.Field, string, error) {
 
 	return fields, requestID, nil
 }
+
+// MsgResHTMLResponse 通过 r 响应信息, c gin 上下文, 统一返回 HTML 格式的信息，并记录响应信息到日志.
+func MsgResHTMLResponse(html []byte, c *gin.Context) {
+	// 构建日志字段
+	fields, _, err := CheckRequestID(c)
+	if err != nil {
+		return
+	}
+
+	// 如果没有 HTML 内容, 返回 204 No Content
+	if len(html) == 0 {
+		c.Status(http.StatusNoContent)
+		c.Abort()
+		zap.L().Warn("响应 HTML 为空", fields...)
+
+		return
+	}
+
+	// 输出 HTML
+	c.Data(http.StatusOK, "text/html; charset=utf-8", html)
+
+	// 如果配置了 EnableResponseBody, 并且 html 不为空, 则记录 HTML
+	if enableResponseBody {
+		dataCopy, err := utils.DeepCopy(html)
+		if err != nil {
+			zap.L().Error("dataCopy, err := utils.DeepCopy(html) failed")
+			return
+		}
+
+		// 尝试对数据做掩码处理（对字符串类型无副作用）
+		logger.MaskSensitiveFields(&dataCopy, logger.SensitiveFields)
+
+		if s, ok := any(dataCopy).([]byte); ok {
+			fields = append(fields, zap.String("html", string(s)))
+		}
+	}
+
+	zap.L().Info("响应信息-HTML", fields...)
+
+	c.Abort()
+}
