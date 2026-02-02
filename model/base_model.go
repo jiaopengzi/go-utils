@@ -39,3 +39,9 @@ type BaseModelSonyflake struct {
 func (BaseModelNoPrimarykey) TableName() string {
 	return "base_model_no_primarykey"
 }
+
+// IntEnumJSON int 枚举序列化为 JSON 对象
+type IntEnumJSON struct {
+	Value int    `json:"value"`
+	Label string `json:"label"`
+}
