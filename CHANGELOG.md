@@ -5,6 +5,14 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.8.0"></a>
+
+## [v0.8.0] - 2026-02-02
+
+### 💥 Boom
+
+- **model:** 自定义类型序列化为 value label
+
 <a name="v0.7.0"></a>
 
 ## [v0.7.0] - 2026-02-01
