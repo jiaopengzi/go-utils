@@ -61,6 +61,26 @@ func (c Currency) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON 实现 json.Unmarshaler 接口, 支持整数或对象格式反序列化
+func (c *Currency) UnmarshalJSON(data []byte) error {
+	// 先尝试整数格式
+	var intVal int
+	if err := json.Unmarshal(data, &intVal); err == nil {
+		*c = Currency(intVal)
+		return nil
+	}
+
+	// 再尝试对象格式 {"value": 1, "label": "..."}
+	var obj IntEnumJSON
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+
+	*c = Currency(obj.Value)
+
+	return nil
+}
+
 // AmountFenToYuan 金额从分转换为元, 保留两位小数
 func (c Currency) AmountFenToYuan(amountFen int64) string {
 	amountYuan := float64(amountFen) / 100.0
