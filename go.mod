@@ -1,6 +1,6 @@
 module github.com/jiaopengzi/go-utils
 
-go 1.25.6
+go 1.25.7
 
 require (
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
