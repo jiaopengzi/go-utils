@@ -71,6 +71,10 @@ func init() {
 		ValidatorFunc: ValidateCSR,
 		ErrMsg:        "请输入正确的证书请求(CSR).",
 	})
+	RegisterValidator("ValidateTransactionFlowType", ValidatorEntry{
+		ValidatorFunc: ValidateTransactionFlowType,
+		ErrMsg:        "请输入正确的交易流水状态.",
+	})
 }
 
 // ValidatePaginate 分页参数校验
@@ -326,4 +330,15 @@ func stringHasSuffixIgnoreCase(s, suffix string) bool {
 	}
 
 	return strings.EqualFold(s[len(s)-len(suffix):], suffix)
+}
+
+// ValidateTransactionFlowType 校验流水表状态
+func ValidateTransactionFlowType(fl validator.FieldLevel) bool {
+	return ValidateEnumInt64(fl,
+		int64(model.TransactionTypeReward),
+		int64(model.TransactionTypeRecharge),
+		int64(model.TransactionTypeConsume),
+		int64(model.TransactionTypeRefund),
+		int64(model.TransactionTypePenalty),
+	)
 }
