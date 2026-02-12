@@ -1,12 +1,12 @@
 //
-// FilePath    : go-utils\email.go
+// FilePath    : go-utils\email\email.go
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
 // Description : 邮件工具
 //
 
-package utils
+package email
 
 import (
 	"bytes"
@@ -15,13 +15,23 @@ import (
 	"net/smtp"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/jordan-wright/email"
+	jordanemail "github.com/jordan-wright/email"
 )
 
-// EmailConfig 邮件配置结构体
-type EmailConfig struct {
+// 预编译邮箱地址正则表达式, 避免每次调用时重复编译
+var emailRegexp = regexp.MustCompile(`^(([^<>()[\]\\.,;:\s@"]+([^<>()[\]\\.,;:\s@"]*(\.[^<>()[\]\\.,;:\s@"]+)*))|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$`)
+
+// 模板缓存, 避免每次发送邮件时重复解析模板文件
+var (
+	templateMu    sync.RWMutex
+	templateCache = make(map[string]*template.Template)
+)
+
+// Config 邮件配置结构体
+type Config struct {
 	Host         string `mapstructure:"host" json:"host" binding:"required" example:"localhost"`                     // 邮箱服务器地址
 	UserName     string `mapstructure:"user_name" json:"user_name"  binding:"required" example:"jiaopengzi"`         // 发件人用户名
 	From         string `mapstructure:"from" json:"from" binding:"required,email" example:"name@example.com"`        // 发件人邮箱账号
@@ -32,22 +42,43 @@ type EmailConfig struct {
 	PoolSize     int    `mapstructure:"pool_size" json:"pool_size" binding:"required,gte=1" example:"4"`             // 连接池大小(工作协程数)
 }
 
-// EmailMeta 邮件元数据结构体定义
-type EmailMeta[T any] struct {
-	Config       *EmailConfig
+// Meta 邮件元数据结构体定义
+type Meta[T any] struct {
+	Config       *Config
 	To           []string // 收件人邮箱账号
 	Subject      string   // 邮件主题
 	TemplatePath string   // 邮件模板路径
 	Data         *T       // 邮件模板数据
 }
 
-// SendEmail 发送邮件：
+// GetTemplate 获取已缓存的模板, 不存在则解析并缓存.
+func GetTemplate(path string) (*template.Template, error) {
+	templateMu.RLock()
+	if t, ok := templateCache[path]; ok {
+		templateMu.RUnlock()
+		return t, nil
+	}
+	templateMu.RUnlock()
+
+	t, err := template.ParseFiles(path)
+	if err != nil {
+		return nil, err
+	}
+
+	templateMu.Lock()
+	templateCache[path] = t
+	templateMu.Unlock()
+
+	return t, nil
+}
+
+// Send 发送邮件：
 // - 解析并渲染模板为邮件正文
 // - 构建 `email.Email` 对象(处理 To/Bcc)
 // - 获取合适的连接池(STARTTLS 或 隐式 TLS)并通过池发送以复用连接
-func SendEmail[T any](meta *EmailMeta[T]) error {
-	// 加载指定模板
-	t, err := template.ParseFiles(meta.TemplatePath)
+func Send[T any](meta *Meta[T]) error {
+	// 加载并缓存指定模板
+	t, err := GetTemplate(meta.TemplatePath)
 	if err != nil {
 		return err
 	}
@@ -59,7 +90,7 @@ func SendEmail[T any](meta *EmailMeta[T]) error {
 	}
 
 	// 构建邮件
-	e := email.NewEmail()
+	e := jordanemail.NewEmail()
 	e.From = meta.Config.From
 	e.To = meta.To
 	e.Subject = meta.Subject
@@ -95,15 +126,7 @@ func IsEmail(s string) bool {
 		return false
 	}
 
-	// 使用正则表达式验证Email格式
-	const emailRegex = `^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$`
-
-	matched, err := regexp.MatchString(emailRegex, s)
-	if err != nil {
-		return false
-	}
-
-	return matched
+	return emailRegexp.MatchString(s)
 }
 
 // FilterStrIsEmail 过滤字符串中的Email地址

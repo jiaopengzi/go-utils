@@ -1,12 +1,12 @@
 //
-// FilePath    : go-utils\email_pool_implicit_tls.go
+// FilePath    : go-utils\email\pool_implicit_tls.go
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
 // Description : 隐式 TLS 邮件连接池工具, 参考 jordan-wright/email.Pool 实现
 //
 
-package utils
+package email
 
 import (
 	"crypto/tls"
@@ -15,7 +15,7 @@ import (
 	"net/smtp"
 	"time"
 
-	"github.com/jordan-wright/email"
+	jordanemail "github.com/jordan-wright/email"
 	"go.uber.org/zap"
 )
 
@@ -32,8 +32,8 @@ type implicitTLSPool struct {
 
 // tlsTask 表示发送邮件的请求及其响应通道.
 type tlsTask struct {
-	e    *email.Email // 要发送的邮件
-	resp chan error   // 发送结果响应通道
+	e    *jordanemail.Email // 要发送的邮件
+	resp chan error         // 发送结果响应通道
 }
 
 // newImplicitTLSPool 创建并启动隐式 TLS 池的 worker(工作协程).
@@ -60,65 +60,110 @@ func newImplicitTLSPool(addr, host string, auth smtp.Auth, tlsCfg *tls.Config, w
 }
 
 // Send 将发送请求放入隐式 TLS 池的任务队列并等待结果或超时.
-func (p *implicitTLSPool) Send(e *email.Email, timeout time.Duration) error {
+// 当 timeout > 0 时, 入队与等待结果共享同一个定时器(总超时);
+// 当 timeout <= 0 时, 无超时限制, 阻塞直到发送完成.
+func (p *implicitTLSPool) Send(e *jordanemail.Email, timeout time.Duration) error {
 	req := tlsTask{e: e, resp: make(chan error, 1)}
 
-	if timeout >= 0 {
+	if timeout > 0 {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+
+		// 入队(带超时)
 		select {
 		case p.tasks <- req:
-		case <-time.After(timeout):
+		case <-timer.C:
 			return fmt.Errorf("timed out enqueuing email send request")
 		}
-	} else {
-		p.tasks <- req
-	}
 
-	if timeout >= 0 {
+		// 等待发送结果(共享同一个 timer, 剩余时间内)
 		select {
 		case err := <-req.resp:
 			return err
-		case <-time.After(timeout):
+		case <-timer.C:
 			return fmt.Errorf("timed out waiting for send result")
 		}
 	}
 
+	// 无超时: 阻塞入队并等待结果
+	p.tasks <- req
+
 	return <-req.resp
 }
 
+// Close 关闭任务队列, 所有 worker 将完成当前任务后退出并释放 SMTP 连接.
+func (p *implicitTLSPool) Close() {
+	close(p.tasks)
+}
+
 // workerLoop 是每个 worker 的主循环：确保与服务器建立连接,
-// 用现有 client 发送邮件, 发生错误时重建连接.
+// 用现有 client 发送邮件, 发生错误时自动重连并重试一次.
 func (p *implicitTLSPool) workerLoop() {
-	var (
-		client  *smtp.Client
-		connErr error
-	)
+	var client *smtp.Client
+
+	// 退出时清理 SMTP 连接
+	defer func() {
+		if client != nil {
+			// 优雅关闭: 发送 QUIT 命令; 失败则强制关闭
+			if err := client.Quit(); err != nil {
+				p.closeClient(client)
+			}
+		}
+	}()
 
 	// 处理任务队列
 	for task := range p.tasks {
 		// 确保 client 已连接并完成认证
 		if client == nil {
-			client, connErr = p.connect()
-			if connErr != nil {
-				task.resp <- connErr
+			var err error
+
+			client, err = p.connect()
+			if err != nil {
+				task.resp <- fmt.Errorf("smtp connect error: %w", err)
 				continue
 			}
 		}
 
 		// 尝试发送邮件
-		err := p.sendWithClient(client, task.e)
-		if err != nil {
-			// 出错时关闭并重置 client, 记录 Quit 错误, 但仍上报原始发送错误
-			if quitErr := client.Quit(); quitErr != nil {
-				zap.L().Error("smtp client quit error", zap.Error(quitErr))
+		if err := p.sendWithClient(client, task.e); err != nil {
+			// 首次发送失败(可能是空闲连接被断开), 关闭旧连接并重试一次
+			zap.L().Warn("smtp send failed, reconnecting and retrying",
+				zap.String("addr", p.addr),
+				zap.Error(err),
+			)
+			p.closeClient(client)
+			client = nil
+
+			// 重新建立连接
+			var connErr error
+
+			client, connErr = p.connect()
+			if connErr != nil {
+				client = nil
+				task.resp <- fmt.Errorf("smtp send failed: %w; reconnect also failed: %w", err, connErr)
+
+				continue
 			}
 
-			client = nil
-			task.resp <- err
+			// 用新连接重试发送
+			if retryErr := p.sendWithClient(client, task.e); retryErr != nil {
+				p.closeClient(client)
+				client = nil
+				task.resp <- fmt.Errorf("smtp retry send failed: %w (original error: %w)", retryErr, err)
 
-			continue
+				continue
+			}
 		}
 
-		// 发送成功
+		// 发送成功(首次或重试), 重置会话以复用连接
+		if err := client.Reset(); err != nil {
+			// Reset 失败说明连接已损坏, 丢弃连接, 下次任务将重新连接
+			// 但邮件已经发送成功, 不影响本次结果
+			zap.L().Warn("smtp session reset failed, discarding connection", zap.Error(err))
+			p.closeClient(client)
+			client = nil
+		}
+
 		task.resp <- nil
 	}
 }
@@ -134,6 +179,7 @@ func (p *implicitTLSPool) connect() (*smtp.Client, error) {
 	// 使用已建立的 TLS 连接创建 smtp.Client
 	c, err := smtp.NewClient(conn, p.host)
 	if err != nil {
+		conn.Close() // 确保底层 TLS 连接不泄漏
 		return nil, err
 	}
 
@@ -148,8 +194,19 @@ func (p *implicitTLSPool) connect() (*smtp.Client, error) {
 	return c, nil
 }
 
-// sendWithClient 使用给定的 smtp.Client 发送邮件数据, 并在成功后调用 Reset 以复用会话
-func (p *implicitTLSPool) sendWithClient(c *smtp.Client, e *email.Email) error {
+// closeClient 安全关闭 smtp.Client, 仅使用 Close 不发送 QUIT 命令,
+// 适用于连接已损坏需要丢弃的场景.
+func (p *implicitTLSPool) closeClient(c *smtp.Client) {
+	if c != nil {
+		if err := c.Close(); err != nil {
+			zap.L().Debug("smtp client close error", zap.Error(err))
+		}
+	}
+}
+
+// sendWithClient 使用给定的 smtp.Client 发送邮件数据.
+// 注意: Reset 由 workerLoop 在发送成功后单独调用, 避免 Reset 失败被误判为发送失败.
+func (p *implicitTLSPool) sendWithClient(c *smtp.Client, e *jordanemail.Email) error {
 	// 组合收件人列表并生成邮件字节流
 	recipients, err := addressLists(e.To, e.Cc, e.Bcc)
 	if err != nil {
@@ -190,11 +247,6 @@ func (p *implicitTLSPool) sendWithClient(c *smtp.Client, e *email.Email) error {
 	}
 
 	if err = w.Close(); err != nil {
-		return err
-	}
-
-	// 重置会话以便连接可被复用用于下条消息
-	if err = c.Reset(); err != nil {
 		return err
 	}
 

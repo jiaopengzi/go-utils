@@ -1,12 +1,12 @@
 //
-// FilePath    : go-utils\email_pool.go
+// FilePath    : go-utils\email\pool.go
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
 // Description : 邮件连接池工具
 //
 
-package utils
+package email
 
 import (
 	"crypto/tls"
@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jordan-wright/email"
+	jordanemail "github.com/jordan-wright/email"
 )
 
 // 连接池管理(按 addr 缓存 pool)
@@ -26,7 +26,12 @@ var (
 
 // poolSender 连接池抽象, 支持不同实现(例如 github.com/jordan-wright/email.Pool 或 隐式 TLS 自实现)
 type poolSender interface {
-	Send(e *email.Email, timeout time.Duration) error
+	Send(e *jordanemail.Email, timeout time.Duration) error
+}
+
+// poolCloser 带有 Close 方法的池, 用于关闭连接池释放资源.
+type poolCloser interface {
+	Close()
 }
 
 // SMTPPool 管理按 addr 缓存的连接池实例
@@ -66,7 +71,7 @@ func GetPool(smtp *SMTPPool) (poolSender, error) {
 	}
 
 	// 默认使用 email.Pool(支持 STARTTLS, 如 587)
-	p, err := email.NewPool(smtp.Addr, smtp.Size, smtp.Auth)
+	p, err := jordanemail.NewPool(smtp.Addr, smtp.Size, smtp.Auth)
 	if err != nil {
 		return nil, err
 	}
@@ -74,4 +79,24 @@ func GetPool(smtp *SMTPPool) (poolSender, error) {
 	smtpPools[smtp.Addr] = p
 
 	return p, nil
+}
+
+// CloseAllPools 关闭并清理所有缓存的连接池.
+// 通常在应用优雅关闭时调用, 释放底层 SMTP 连接.
+func CloseAllPools() {
+	poolsMu.Lock()
+	defer poolsMu.Unlock()
+
+	for addr, p := range smtpPools {
+		if closer, ok := p.(poolCloser); ok {
+			closer.Close()
+		}
+
+		delete(smtpPools, addr)
+	}
+}
+
+// ResetPools 重置连接池缓存, 仅用于测试.
+func ResetPools() {
+	CloseAllPools()
 }
