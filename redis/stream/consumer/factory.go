@@ -243,29 +243,41 @@ func HandleAndAckMessage[T any](c *BaseConsumer[T], message redis.XMessage, msgK
 	if err = messageHandler(valueStruct); err != nil {
 		zap.L().Error("messageHandler() failed DLQ(Dead Letter Queue, 死信队列)", logFields(err)...)
 
-		// 消费失败 ACK 签收消息
-		if err = c.AckMessage(message.ID, valueStruct, false); err != nil {
-			zap.L().Error("c.AckMessage() failed", logFields(err)...)
-			return err
-		}
-
-		// 删除处理标记(无论 Ack 成功与否, 都需要删除标记)
-		if c.StateManager != nil {
-			if errDel := c.StateManager.ClearProcessing(c.StreamName, message.ID); errDel != nil {
-				zap.L().Error("del processing flag failed", zap.Error(errDel), zap.String("msgID", message.ID))
-			}
+		if ackErr := ackAndClearOnFailure(c, message, valueStruct, logFields(err)); ackErr != nil {
+			return ackErr
 		}
 
 		return err
 	}
 
-	// 消费成功 ACK 签收消息
-	if err = c.AckMessage(message.ID, valueStruct, true); err != nil {
-		zap.L().Error("c.AckMessage() failed", logFields(err)...)
+	if ackErr := ackAndClearOnSuccess(c, message, valueStruct, logFields(nil)); ackErr != nil {
+		return ackErr
+	}
+
+	return nil
+}
+
+func ackAndClearOnFailure[T any](c *BaseConsumer[T], message redis.XMessage, valueStruct *T, fields []zap.Field) error {
+	if err := c.AckMessage(message.ID, valueStruct, false); err != nil {
+		zap.L().Error("c.AckMessage() failed", fields...)
 		return err
 	}
 
-	// 删除处理标记
+	if c.StateManager != nil {
+		if errDel := c.StateManager.ClearProcessing(c.StreamName, message.ID); errDel != nil {
+			zap.L().Error("del processing flag failed", zap.Error(errDel), zap.String("msgID", message.ID))
+		}
+	}
+
+	return nil
+}
+
+func ackAndClearOnSuccess[T any](c *BaseConsumer[T], message redis.XMessage, valueStruct *T, fields []zap.Field) error {
+	if err := c.AckMessage(message.ID, valueStruct, true); err != nil {
+		zap.L().Error("c.AckMessage() failed", fields...)
+		return err
+	}
+
 	if c.StateManager != nil {
 		if errDel := c.StateManager.ClearProcessing(c.StreamName, message.ID); errDel != nil {
 			zap.L().Error("del processing flag failed", zap.Error(errDel), zap.String("msgID", message.ID))

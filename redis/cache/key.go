@@ -14,8 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jiaopengzi/go-utils/model"
 	"go.uber.org/zap"
+
+	"github.com/jiaopengzi/go-utils/model"
 )
 
 // Purpose 缓存用途分类

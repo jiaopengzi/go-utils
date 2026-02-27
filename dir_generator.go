@@ -70,24 +70,45 @@ func (cd *ChunkSubDir) GenerateDir(opts *GenerateDirOptions) (string, error) {
 		fileNameHashLength = opts.FileNameHashLength
 	}
 
-	// 校验 Date ID HashStr 为必填项
+	if err := cd.validateRequired(); err != nil {
+		return "", err
+	}
+
+	cd.applyDefaults(fileNameHashLength)
+
+	layout, err := cd.layoutString()
+	if err != nil {
+		return "", err
+	}
+
+	subDir := cd.buildSubDir(layout)
+
+	if isMkdirLocal {
+		if err := createDirIfNeeded(subDir, cd.RootDir, cd.Permission); err != nil {
+			return "", err
+		}
+	}
+
+	return subDir, nil
+}
+
+func (cd *ChunkSubDir) validateRequired() error {
 	if cd.CreatedAt.IsZero() {
-		return "", fmt.Errorf("date is required")
+		return fmt.Errorf("date is required")
 	}
-
 	if cd.ID == 0 {
-		return "", fmt.Errorf("id is required")
+		return fmt.Errorf("id is required")
 	}
-
 	if cd.HashStr == "" {
-		return "", fmt.Errorf("hash string is required")
+		return fmt.Errorf("hash string is required")
 	}
-
 	if cd.PartNumbers == 0 {
-		return "", fmt.Errorf("part numbers is required")
+		return fmt.Errorf("part numbers is required")
 	}
+	return nil
+}
 
-	// 设置可选项默认值
+func (cd *ChunkSubDir) applyDefaults(fileNameHashLength int) {
 	if cd.Delimiter == "" {
 		cd.Delimiter = "-"
 	}
@@ -95,69 +116,55 @@ func (cd *ChunkSubDir) GenerateDir(opts *GenerateDirOptions) (string, error) {
 	if cd.HashStrPrefixLength == 0 {
 		cd.HashStrPrefixLength = fileNameHashLength
 	} else if cd.HashStrPrefixLength > len(cd.HashStr) {
-		// 如果设置的 HashStrPrefixLength 大于 HashStr 的长度，则取 HashStr 的长度
 		cd.HashStrPrefixLength = len(cd.HashStr)
 	}
 
 	if cd.DateTimeLayout == "" {
-		// 默认为天
 		cd.DateTimeLayout = DateTimeLayoutDay
 	}
 
 	if cd.Permission == 0 {
-		// 默认权限 0700 rwx 权限分布 rwx------
 		cd.Permission = 0700
 	}
+}
 
-	var layout string
-
+func (cd *ChunkSubDir) layoutString() (string, error) {
 	switch cd.DateTimeLayout {
 	case DateTimeLayoutYear:
-		layout = "2006"
+		return "2006", nil
 	case DateTimeLayoutMonth:
-		layout = "2006/01"
+		return "2006/01", nil
 	case DateTimeLayoutDay:
-		layout = "2006/01/02"
+		return "2006/01/02", nil
 	case DateTimeLayoutHour:
-		layout = "2006/01/02/15"
+		return "2006/01/02/15", nil
 	case DateTimeLayoutMin:
-		layout = "2006/01/02/15/04"
+		return "2006/01/02/15/04", nil
 	case DateTimeLayoutSec:
-		layout = "2006/01/02/15/04/05"
+		return "2006/01/02/15/04/05", nil
 	default:
 		return "", fmt.Errorf("invalid prefix: %s", cd.DateTimeLayout)
 	}
+}
 
-	// 拼接目录
-	var subDir string
-	// 如果分片数量为 1 则不创建子目录
+func (cd *ChunkSubDir) buildSubDir(layout string) string {
 	if cd.PartNumbers == 1 {
-		subDir = cd.CreatedAt.Format(layout)
-	} else {
-		subDir = fmt.Sprintf("%s/%d%s%s", cd.CreatedAt.Format(layout), cd.ID, cd.Delimiter, cd.HashStr[:cd.HashStrPrefixLength])
+		return cd.CreatedAt.Format(layout)
 	}
+	return fmt.Sprintf("%s/%d%s%s", cd.CreatedAt.Format(layout), cd.ID, cd.Delimiter, cd.HashStr[:cd.HashStrPrefixLength])
+}
 
-	// 根据 mkdirLocal 判断是否创建目录
-	if isMkdirLocal {
-		// 如果设置了 RootDir 则拼接 RootDir 默认为当前工作目录
-		dir := subDir
+func createDirIfNeeded(subDir, rootDir string, perm os.FileMode) error {
+	dir := subDir
+	if rootDir != "" {
+		dir = filepath.Join(rootDir, dir)
+	}
+	dirPath := filepath.FromSlash(dir)
 
-		// 如果设置了 RootDir 则拼接 RootDir 默认为当前工作目录
-		if cd.RootDir != "" {
-			dir = filepath.Join(cd.RootDir, dir)
-		}
-
-		// 将路径中的斜杠替换为当前系统的路径分隔符
-		dirPath := filepath.FromSlash(dir)
-
-		// 创建目录 如果目录已经存在则不创建
-		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-			err := os.MkdirAll(dirPath, cd.Permission)
-			if err != nil {
-				return "", err
-			}
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(dirPath, perm); err != nil {
+			return err
 		}
 	}
-
-	return subDir, nil
+	return nil
 }

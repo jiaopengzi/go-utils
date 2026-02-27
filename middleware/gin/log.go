@@ -20,8 +20,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jiaopengzi/go-utils/res"
 	"go.uber.org/zap"
+
+	"github.com/jiaopengzi/go-utils/res"
 )
 
 // ZapLogger 使用 zap 接管 gin 框架默认的日志

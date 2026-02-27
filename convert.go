@@ -190,61 +190,79 @@ var (
 
 // IsWebvtt 判断是否为 Webvtt 字幕
 func IsWebvtt(content string) (bool, string) {
-	// 判断是否为空
-	if content == "" {
+	if strings.TrimSpace(content) == "" {
 		return false, "字幕内容不能为空"
 	}
 
-	// 如果只有一行，则判断是否为 WEBVTT 开头
+	// 单行特殊处理
 	if strings.Count(content, "\n") == 0 {
 		if strings.HasPrefix(content, "WEBVTT") {
 			return true, ""
 		}
-
 		return false, "字幕需要以 WEBVTT 开头"
 	}
 
-	// 判断第一行是否为 WEBVTT 开头
-	if !strings.HasPrefix(content, "WEBVTT") {
+	if !hasWebvttHeader(content) {
 		return false, "字幕需要以 WEBVTT 开头"
 	}
 
-	// 去掉 NOTE 和 STYLE 块
-	content = reNoteStyle.ReplaceAllString(content, "\n")
+	// 移除 NOTE/STYLE 块后进行时间表达式与内容校验
+	filtered := removeNoteStyle(content)
 
-	// 判断是否有时间表达式
-	matches := reTimeExpression.FindAllString(content, -1)
+	matches := findTimeExpressions(filtered)
 	if len(matches) == 0 {
 		return false, "需要包含时间表达式 hh:mm:ss.mmm, mm:ss.mmm, ss.mmm"
 	}
 
-	// 判断时间表达式是否正确(是否包含 -->)
+	if ok, msg := validateTimeExpressions(matches); !ok {
+		return false, msg
+	}
+
+	if ok, msg := validateSubtitleContentAfterTiming(filtered); !ok {
+		return false, msg
+	}
+
+	return true, ""
+}
+
+func hasWebvttHeader(content string) bool {
+	return strings.HasPrefix(content, "WEBVTT")
+}
+
+func removeNoteStyle(content string) string {
+	return reNoteStyle.ReplaceAllString(content, "\n")
+}
+
+func findTimeExpressions(content string) []string {
+	return reTimeExpression.FindAllString(content, -1)
+}
+
+func validateTimeExpressions(matches []string) (bool, string) {
 	for _, match := range matches {
-		time := strings.Split(match, " --> ")
-		if len(time) != 2 {
+		parts := strings.Split(match, " --> ")
+		if len(parts) != 2 {
 			return false, "时间表达式中需要 --> 分隔符"
 		}
 
-		startTime := strings.TrimSpace(time[0])
-		endTime := strings.TrimSpace(time[1])
+		startTime := strings.TrimSpace(parts[0])
+		endTime := strings.TrimSpace(parts[1])
 
-		// 判断时间是否符合 hh:mm:ss.mmm, mm:ss.mmm, ss.mmm
 		if !reTimeFormat.MatchString(startTime) || !reTimeFormat.MatchString(endTime) {
 			return false, "时间格式错误，支持 hh:mm:ss.mmm, mm:ss.mmm, ss.mmm"
 		}
 	}
+	return true, ""
+}
 
-	// 对空字幕的校验
+func validateSubtitleContentAfterTiming(content string) (bool, string) {
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
 		if reTimeExpression.MatchString(line) {
-			// 检查时间表达式后是否有字幕内容
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "" {
 				return false, "时间表达式后需要有字幕内容,不能为空"
 			}
 		}
 	}
-
 	return true, ""
 }
 

@@ -65,33 +65,18 @@ func IsSlicesEqualByField[T any](sliceSrc, sliceTar []T, fieldNames []string) (b
 		srcValue := reflect.Indirect(reflect.ValueOf(sliceSrc[i]))
 		tarValue := reflect.Indirect(reflect.ValueOf(sliceTar[i]))
 
-		// 优先比较剩余字段的值
-		for j := range srcValue.NumField() {
-			fieldName := srcValue.Type().Field(j).Name
-			if contains(fieldNames, fieldName) {
-				continue
-			}
-
-			if !reflect.DeepEqual(srcValue.Field(j).Interface(), tarValue.Field(j).Interface()) {
-				return false, &FieldMismatchError{
-					FieldName: fieldName,
-					Index:     i,
-				}
-			}
+		// 比较非指定字段
+		if fmErr := compareNonSpecifiedFields(srcValue, tarValue, fieldNames, i); fmErr != nil {
+			return false, fmErr
 		}
 
-		// 比较指定字段的值
-		for _, fieldName := range fieldNames {
-			srcField := srcValue.FieldByName(fieldName)
-			tarField := tarValue.FieldByName(fieldName)
-
-			if !srcField.IsValid() || !tarField.IsValid() {
-				return false, fmt.Errorf("field %s does not exist", fieldName)
-			}
-
-			if !reflect.DeepEqual(srcField.Interface(), tarField.Interface()) {
-				return false, nil
-			}
+		// 比较指定字段
+		ok, err := compareSpecifiedFields(srcValue, tarValue, fieldNames)
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			return false, nil
 		}
 	}
 
@@ -101,4 +86,42 @@ func IsSlicesEqualByField[T any](sliceSrc, sliceTar []T, fieldNames []string) (b
 // contains 判断切片是否包含某个元素
 func contains(slice []string, item string) bool {
 	return slices.Contains(slice, item)
+}
+
+// compareNonSpecifiedFields 比较 srcValue 与 tarValue 中除指定字段外的其余字段
+// 如发现不匹配, 返回 *FieldMismatchError 指示字段名与索引
+func compareNonSpecifiedFields(srcValue, tarValue reflect.Value, fieldNames []string, idx int) error {
+	num := srcValue.NumField()
+	for j := 0; j < num; j++ {
+		fieldName := srcValue.Type().Field(j).Name
+		if contains(fieldNames, fieldName) {
+			continue
+		}
+
+		if !reflect.DeepEqual(srcValue.Field(j).Interface(), tarValue.Field(j).Interface()) {
+			return &FieldMismatchError{FieldName: fieldName, Index: idx}
+		}
+	}
+	return nil
+}
+
+// compareSpecifiedFields 比较 srcValue 与 tarValue 中指定的字段
+// 返回 (true, nil) 表示所有指定字段相等
+// 返回 (false, nil) 表示指定字段存在但不相等
+// 返回 (false, error) 表示指定字段不存在等错误
+func compareSpecifiedFields(srcValue, tarValue reflect.Value, fieldNames []string) (bool, error) {
+	for _, fieldName := range fieldNames {
+		srcField := srcValue.FieldByName(fieldName)
+		tarField := tarValue.FieldByName(fieldName)
+
+		if !srcField.IsValid() || !tarField.IsValid() {
+			return false, fmt.Errorf("field %s does not exist", fieldName)
+		}
+
+		if !reflect.DeepEqual(srcField.Interface(), tarField.Interface()) {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

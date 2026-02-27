@@ -11,8 +11,9 @@ package producer
 import (
 	"context"
 
-	_stream "github.com/jiaopengzi/go-utils/redis/stream"
 	"github.com/redis/go-redis/v9"
+
+	_stream "github.com/jiaopengzi/go-utils/redis/stream"
 )
 
 // ManageProducers 通过配置初始化并管理生产者

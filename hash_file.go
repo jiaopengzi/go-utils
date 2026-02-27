@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 // GenerateHashByFileContent 通过文件内容 file 生成哈希值, 可通过 WithAlgorithm 选项指定哈希算法
@@ -42,6 +44,12 @@ func GenerateHashByFileContent(file *bytes.Reader, opts ...HAOptionFunc) (string
 
 // GenerateHashByFilePath 通过 filePath 生成哈希值, 可通过 WithAlgorithm 选项指定哈希算法
 func GenerateHashByFilePath(filePath string, opts ...HAOptionFunc) (string, error) {
+	// 清理并简单校验传入路径, 防止路径包含上层引用
+	filePath = filepath.Clean(filePath)
+	if strings.Contains(filePath, "..") {
+		return "", fmt.Errorf("invalid file path: contains .. element")
+	}
+
 	// 打开文件
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -98,6 +106,12 @@ func GenerateIncrementalHashFromFilePaths(filePaths []string, opts ...HAOptionFu
 
 	// 打开每个文件并添加到 readers 列表
 	for _, filePath := range filePaths {
+		// 清理并简单校验传入路径
+		filePath = filepath.Clean(filePath)
+		if strings.Contains(filePath, "..") {
+			return "", fmt.Errorf("invalid file path: contains .. element")
+		}
+
 		file, err := os.Open(filePath)
 		if err != nil {
 			return "", err

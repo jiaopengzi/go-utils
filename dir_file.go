@@ -10,6 +10,7 @@ package utils
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -98,6 +99,12 @@ func RemoveDir(path string) error {
 
 // CheckIfDirIsEmpty 检查目录是否为空
 func CheckIfDirIsEmpty(dir string) (bool, error) {
+	// 清理并简单校验传入路径, 防止路径包含上层引用
+	dir = filepath.Clean(dir)
+	if strings.Contains(dir, "..") {
+		return false, fmt.Errorf("invalid directory path: contains .. element")
+	}
+
 	// 打开目录
 	file, err := os.Open(dir)
 	if err != nil {
@@ -182,6 +189,12 @@ func IsFileExists(path string) bool {
 
 // WriteFile 将 data 写入到 path 文件中, 如果文件不存在则创建, 如果文件存在则覆盖
 func WriteFile(path string, data []byte, perm os.FileMode) error {
+	// 清理并简单校验传入路径, 防止路径包含上层引用
+	path = filepath.Clean(path)
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("invalid file path: contains .. element")
+	}
+
 	// 打开文件 不存在则创建 , 存在则覆盖 , 读写权限
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
 	if err != nil {
@@ -215,6 +228,12 @@ func WriteFile(path string, data []byte, perm os.FileMode) error {
 
 // AppendToFile 将 data 追加到 path 文件中, 如果文件不存在则创建, 如果文件存在则将给定内容追加到指定文件
 func AppendToFile(path string, data []byte, perm os.FileMode) error {
+	// 清理并简单校验传入路径, 防止路径包含上层引用
+	path = filepath.Clean(path)
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("invalid file path: contains .. element")
+	}
+
 	// 以追加模式打开文件
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, perm)
 	if err != nil {
@@ -284,6 +303,12 @@ func DeleteFileRemoveDirRecursiveRemoveEmptyParents(path string, stopAtDir strin
 
 // ReadFile 读取文件 path 的内容, 返回文件数据和可能的错误
 func ReadFile(path string) ([]byte, error) {
+	// 清理并简单校验传入路径, 防止路径包含上层引用
+	path = filepath.Clean(path)
+	if strings.Contains(path, "..") {
+		return nil, fmt.Errorf("invalid file path: contains .. element")
+	}
+
 	// 打开文件
 	file, err := os.Open(path)
 	if err != nil {
@@ -311,6 +336,12 @@ func ReadFile(path string) ([]byte, error) {
 
 // ReadFileToString 读取文件 filePath 到字符串
 func ReadFileToString(filePath string) (string, error) {
+	// 清理并简单校验传入路径, 防止路径包含上层引用
+	filePath = filepath.Clean(filePath)
+	if strings.Contains(filePath, "..") {
+		return "", fmt.Errorf("invalid file path: contains .. element")
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err

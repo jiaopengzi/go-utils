@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+
 	"github.com/jiaopengzi/go-utils/model"
 	"github.com/jiaopengzi/go-utils/types"
 )

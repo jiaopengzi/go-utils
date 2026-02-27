@@ -17,7 +17,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jiaopengzi/go-utils"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/downloader"
@@ -27,6 +26,8 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/refunddomestic"
 	wechatUtils "github.com/wechatpay-apiv3/wechatpay-go/utils"
+
+	"github.com/jiaopengzi/go-utils"
 
 	"go.uber.org/zap"
 )

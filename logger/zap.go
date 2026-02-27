@@ -11,17 +11,15 @@ package logger
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"path/filepath"
 	"time"
 
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v3"
 
 	"github.com/jiaopengzi/go-utils"
-
-	"go.uber.org/zap"
 )
 
 // MyZapConfig 自定义 zap 配置
@@ -116,7 +114,7 @@ func cfgUnmarshal(confFilePath string) (*MyZapConfig, error) {
 		confFilePath = "./config/log_zap.yaml"
 	}
 
-	yamlFile, err := os.ReadFile(confFilePath)
+	yamlFile, err := utils.ReadFile(confFilePath)
 	if err != nil {
 		return nil, err
 	}

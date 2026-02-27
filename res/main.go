@@ -13,10 +13,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+
 	"github.com/jiaopengzi/go-utils"
 	"github.com/jiaopengzi/go-utils/logger"
 	"github.com/jiaopengzi/go-utils/rescode"
-	"go.uber.org/zap"
 )
 
 // 定义在 gin 上下文中的 key

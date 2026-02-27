@@ -15,9 +15,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jiaopengzi/go-utils/redis/stream"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+
+	"github.com/jiaopengzi/go-utils/redis/stream"
 )
 
 // Consumer 消费者接口
