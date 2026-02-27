@@ -4,6 +4,20 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+
+<a name="v0.11.0"></a>
+
+## [v0.11.0] - 2026-02-27
+
+### ✨ Feat
+
+- **email:** 增加 SendWithBase 邮件 html 模版复用
+
+### 📦 Build
+
+- lint and format
+- **email:** lint 降低认知复杂度
+
 <a name="v0.10.0"></a>
 
 ## [v0.10.0] - 2026-02-12
@@ -173,6 +187,7 @@
 
 - 工具库首发。
 
+[v0.11.0]: https://github.com/jiaopengzi/go-utils/compare/v0.10.0...v0.11.0
 [v0.10.0]: https://github.com/jiaopengzi/go-utils/compare/v0.9.1...v0.10.0
 [v0.9.1]: https://github.com/jiaopengzi/go-utils/compare/v0.9.0...v0.9.1
 [v0.9.0]: https://github.com/jiaopengzi/go-utils/compare/v0.8.1...v0.9.0
