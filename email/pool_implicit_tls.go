@@ -114,45 +114,15 @@ func (p *implicitTLSPool) workerLoop() {
 	// 处理任务队列
 	for task := range p.tasks {
 		// 确保 client 已连接并完成认证
-		if client == nil {
-			var err error
-
-			client, err = p.connect()
-			if err != nil {
-				task.resp <- fmt.Errorf("smtp connect error: %w", err)
-				continue
-			}
+		if err := p.ensureClientConnected(&client); err != nil {
+			task.resp <- fmt.Errorf("smtp connect error: %w", err)
+			continue
 		}
 
-		// 尝试发送邮件
-		if err := p.sendWithClient(client, task.e); err != nil {
-			// 首次发送失败(可能是空闲连接被断开), 关闭旧连接并重试一次
-			zap.L().Warn("smtp send failed, reconnecting and retrying",
-				zap.String("addr", p.addr),
-				zap.Error(err),
-			)
-			p.closeClient(client)
-			client = nil
-
-			// 重新建立连接
-			var connErr error
-
-			client, connErr = p.connect()
-			if connErr != nil {
-				client = nil
-				task.resp <- fmt.Errorf("smtp send failed: %w; reconnect also failed: %w", err, connErr)
-
-				continue
-			}
-
-			// 用新连接重试发送
-			if retryErr := p.sendWithClient(client, task.e); retryErr != nil {
-				p.closeClient(client)
-				client = nil
-				task.resp <- fmt.Errorf("smtp retry send failed: %w (original error: %w)", retryErr, err)
-
-				continue
-			}
+		// 尝试发送邮件并在失败时重试一次
+		if err := p.trySendWithRetry(&client, task.e); err != nil {
+			task.resp <- err
+			continue
 		}
 
 		// 发送成功(首次或重试), 重置会话以复用连接
@@ -168,6 +138,49 @@ func (p *implicitTLSPool) workerLoop() {
 	}
 }
 
+// ensureClientConnected 确保传入的 client 已连接并认证, 若为 nil 则建立连接
+func (p *implicitTLSPool) ensureClientConnected(client **smtp.Client) error {
+	if *client == nil {
+		c, err := p.connect()
+		if err != nil {
+			return err
+		}
+		*client = c
+	}
+	return nil
+}
+
+// trySendWithRetry 使用现有 client 发送, 若失败则重连并重试一次。成功返回 nil, 失败返回具体错误。
+func (p *implicitTLSPool) trySendWithRetry(client **smtp.Client, e *jordanemail.Email) error {
+	if err := p.sendWithClient(*client, e); err != nil {
+		// 首次发送失败(可能是空闲连接被断开), 关闭旧连接并重试一次
+		zap.L().Warn("smtp send failed, reconnecting and retrying",
+			zap.String("addr", p.addr),
+			zap.Error(err),
+		)
+		p.closeClient(*client)
+		*client = nil
+
+		// 重新建立连接
+		c, connErr := p.connect()
+		if connErr != nil {
+			*client = nil
+			return fmt.Errorf("smtp send failed: %w; reconnect also failed: %w", err, connErr)
+		}
+
+		*client = c
+
+		// 用新连接重试发送
+		if retryErr := p.sendWithClient(*client, e); retryErr != nil {
+			p.closeClient(*client)
+			*client = nil
+			return fmt.Errorf("smtp retry send failed: %w (original error: %w)", retryErr, err)
+		}
+	}
+
+	return nil
+}
+
 // connect 与服务器建立隐式 TLS 连接并返回认证后的 smtp.Client
 func (p *implicitTLSPool) connect() (*smtp.Client, error) {
 	// 建立 TCP + TLS 连接(隐式 TLS)
@@ -179,14 +192,18 @@ func (p *implicitTLSPool) connect() (*smtp.Client, error) {
 	// 使用已建立的 TLS 连接创建 smtp.Client
 	c, err := smtp.NewClient(conn, p.host)
 	if err != nil {
-		conn.Close() // 确保底层 TLS 连接不泄漏
+		if cerr := conn.Close(); cerr != nil {
+			zap.L().Debug("tls conn close error", zap.Error(cerr))
+		}
 		return nil, err
 	}
 
 	// 如需认证则执行 Auth
 	if p.auth != nil {
 		if err := c.Auth(p.auth); err != nil {
-			c.Close()
+			if cerr := c.Close(); cerr != nil {
+				zap.L().Debug("smtp client close error", zap.Error(cerr))
+			}
 			return nil, err
 		}
 	}
