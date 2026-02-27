@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/smtp"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -24,10 +25,13 @@ import (
 // 预编译邮箱地址正则表达式, 避免每次调用时重复编译
 var emailRegexp = regexp.MustCompile(`^(([^<>()[\]\\.,;:\s@"]+([^<>()[\]\\.,;:\s@"]*(\.[^<>()[\]\\.,;:\s@"]+)*))|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$`)
 
-// 模板缓存, 避免每次发送邮件时重复解析模板文件
+// 模板缓存, 避免每次发送邮件时重复解析模板文件 key = 内容模板路径
 var (
 	templateMu    sync.RWMutex
 	templateCache = make(map[string]*template.Template)
+
+	// emailBaseTemplatePath 默认的共享基础模板路径(header/footer/CSS 等公共组件), 可以通过 SetEmailBaseTemplatePath 修改
+	emailBaseTemplatePath = "./templates/email/_base.html"
 )
 
 // Config 邮件配置结构体
@@ -35,7 +39,7 @@ type Config struct {
 	Host         string `mapstructure:"host" json:"host" binding:"required" example:"localhost"`                     // 邮箱服务器地址
 	UserName     string `mapstructure:"user_name" json:"user_name"  binding:"required" example:"jiaopengzi"`         // 发件人用户名
 	From         string `mapstructure:"from" json:"from" binding:"required,email" example:"name@example.com"`        // 发件人邮箱账号
-	Password     string `mapstructure:"password" json:"password"  binding:"required" example:"Pwd12356"`             // 发件人邮箱密码
+	Password     string `mapstructure:"password" json:"password"  binding:"required" example:"Pwd12356"`             // nolint:gosec // 发件人邮箱密码
 	Port         int    `mapstructure:"port" json:"port"  binding:"required,gte=1,lte=65535" example:"587"`          // 邮箱服务器端口
 	MaxSendCount int    `mapstructure:"max_send_count" json:"max_send_count" binding:"required,gte=1" example:"100"` // 单次发送邮件的最大数量
 	SendInterval int    `mapstructure:"send_interval" json:"send_interval" binding:"required,gte=1" example:"60"`    // 邮件发送间隔时间 单位：秒 默认 60 秒
@@ -77,33 +81,9 @@ func GetTemplate(path string) (*template.Template, error) {
 // - 构建 `email.Email` 对象(处理 To/Bcc)
 // - 获取合适的连接池(STARTTLS 或 隐式 TLS)并通过池发送以复用连接
 func Send[T any](meta *Meta[T]) error {
-	// 加载并缓存指定模板
-	t, err := GetTemplate(meta.TemplatePath)
+	e, err := buildEmailFromMeta(meta, false)
 	if err != nil {
 		return err
-	}
-
-	// 将数据渲染到模板
-	var body bytes.Buffer
-	if err = t.Execute(&body, meta.Data); err != nil {
-		return err
-	}
-
-	// 构建邮件
-	e := jordanemail.NewEmail()
-	e.From = meta.Config.From
-	e.To = meta.To
-	e.Subject = meta.Subject
-	e.HTML = body.Bytes() // 使用HTML
-
-	// 如果有 Bcc 则添加到 Bcc 保证邮件发送时不会显示所有收件人
-	if len(meta.To) > 0 {
-		// 只显示第一位收件人
-		e.To = []string{meta.To[0]}
-		// 其余收件人全部放入 Bcc
-		if len(meta.To) > 1 {
-			e.Bcc = meta.To[1:]
-		}
 	}
 
 	// 使用连接池复用 SMTP/TLS 连接, 避免每次发送都进行握手开销
@@ -162,4 +142,98 @@ func FilterStrIsEmail(str string, delimiter ...string) ([]string, []string) {
 	}
 
 	return emails, notEmails
+}
+
+// SetEmailBaseTemplatePath 设置共享基础模板路径(header/footer/CSS 等公共组件)
+func SetEmailBaseTemplatePath(path string) {
+	emailBaseTemplatePath = path
+}
+
+// getMultiTemplate 获取已缓存的多文件模板(_base.html + 内容文件)，不存在则解析并缓存。
+func getMultiTemplate(contentPath string) (*template.Template, error) {
+	templateMu.RLock()
+	if t, ok := templateCache[contentPath]; ok {
+		templateMu.RUnlock()
+		return t, nil
+	}
+	templateMu.RUnlock()
+
+	t, err := template.ParseFiles(emailBaseTemplatePath, contentPath)
+	if err != nil {
+		return nil, err
+	}
+
+	templateMu.Lock()
+	templateCache[contentPath] = t
+	templateMu.Unlock()
+
+	return t, nil
+}
+
+// buildEmailFromMeta 根据给定的 Meta 构建 `jordanemail.Email` 对象。
+// 参数：
+// - meta: 邮件元数据与配置
+// - useBase: 若为 true, 使用 `_base.html` 联合模板渲染 (通过 `getMultiTemplate`), 否则使用单文件模板 (通过 `GetTemplate`)
+// 返回值：
+// - *jordanemail.Email: 构建好的邮件对象
+// - error: 可能发生的错误
+func buildEmailFromMeta[T any](meta *Meta[T], useBase bool) (*jordanemail.Email, error) {
+	var body bytes.Buffer
+
+	if useBase {
+		t, err := getMultiTemplate(meta.TemplatePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := t.ExecuteTemplate(&body, filepath.Base(meta.TemplatePath), meta.Data); err != nil {
+			return nil, err
+		}
+	} else {
+		t, err := GetTemplate(meta.TemplatePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := t.Execute(&body, meta.Data); err != nil {
+			return nil, err
+		}
+	}
+
+	e := jordanemail.NewEmail()
+	e.From = meta.Config.From
+	e.Subject = meta.Subject
+	e.HTML = body.Bytes()
+
+	if len(meta.To) > 0 {
+		e.To = []string{meta.To[0]}
+		if len(meta.To) > 1 {
+			e.Bcc = meta.To[1:]
+		}
+	}
+
+	return e, nil
+}
+
+// SendWithBase 发送邮件，自动联合 _base.html 共享组件渲染内容模板。
+//   - 使用 template.ParseFiles(_base.html, contentPath) 解析多文件
+//   - 以 ExecuteTemplate(contentFilename) 执行内容模板
+//   - 其余发送逻辑与 e.Send 保持一致
+func SendWithBase[T any](meta *Meta[T]) error {
+	mail, err := buildEmailFromMeta(meta, true)
+	if err != nil {
+		return err
+	}
+
+	// 获取连接池并发送
+	p, err := GetPool(&SMTPPool{
+		Addr: fmt.Sprintf("%s:%d", meta.Config.Host, meta.Config.Port),
+		Auth: smtp.PlainAuth("", meta.Config.From, meta.Config.Password, meta.Config.Host),
+		Size: meta.Config.PoolSize,
+	})
+	if err != nil {
+		return err
+	}
+
+	return p.Send(mail, 30*time.Second)
 }
