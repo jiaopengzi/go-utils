@@ -23,6 +23,7 @@ const (
 	ErrOrderNotOwn           = JpzError("order is not own.")               // 订单不属于当前用户
 	ErrOrderCheckoutExpired  = JpzError("order checkout is expired.")      // 订单结算信息已过期
 	ErrRefundWeChatNotEnough = JpzError("refund wechat not enough.")       // 微信退款余额不足
+	ErrRefundAlipayNotEnough = JpzError("refund alipay not enough.")       // 支付宝退款余额不足
 	ErrTokenInvalidClaims    = JpzError("invalid_token_claims.")           // token 声明无效
 	ErrTokenInvalid          = JpzError("token_is_invalid.")               // token 无效
 	ErrTokenInvalidType      = JpzError("invalid_token_type.")             // token 类型无效

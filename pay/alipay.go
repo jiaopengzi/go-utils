@@ -275,7 +275,7 @@ func (a *Alipay) CloseOrder(orderID uint64) error {
 
 	// 如果返回的 code 是失败状态，记录日志并返回错误
 	if result.Code.IsFailure() {
-		return fmt.Errorf("alipay cancel order failed: code %s, msg %s", result.Code, result.Msg)
+		return fmt.Errorf("alipay cancel order failed: code %s, msg %s, sub_code %s, sub_msg %s", result.Code, result.Msg, result.SubCode, result.SubMsg)
 	}
 
 	zap.L().Info("Alipay order closed successfully", zap.Uint64("order_id", orderID))
@@ -314,7 +314,13 @@ func (a *Alipay) Refund(orderID, refundID uint64, amount, refundAmount int64, re
 	}
 
 	if result.Code.IsFailure() {
-		return nil, fmt.Errorf("alipay refund failed: code %s, msg %s", result.Code, result.Msg)
+		// 卖家余额不足
+		// 签约未满90日或连续正常交易未满30日, 资金将于次日进行结算; 会显示余额不足.
+		if result.SubCode == "ACQ.SELLER_BALANCE_NOT_ENOUGH" {
+			zap.L().Warn("Alipay refund seller balance not enough", zap.Uint64("order_id", orderID), zap.String("sub_code", result.SubCode), zap.String("sub_msg", result.SubMsg))
+			return nil, utils.ErrRefundAlipayNotEnough
+		}
+		return nil, fmt.Errorf("alipay refund failed: code %s, msg %s, sub_code %s, sub_msg %s", result.Code, result.Msg, result.SubCode, result.SubMsg)
 	}
 
 	zap.L().Debug("Alipay refund successful", zap.Uint64("order_id", orderID), zap.Uint64("refund_id", refundID))
@@ -361,7 +367,7 @@ func (a *Alipay) QueryRefund(orderID, refundID uint64) (*RefundResult, error) {
 
 	// 处理没有查询到订单的情况
 	if resultQuery.Code.IsFailure() {
-		return nil, fmt.Errorf("支付宝退款查询，该订单不存在, 订单id: %d, 退款id: %d", orderID, refundID)
+		return nil, fmt.Errorf("支付宝退款查询，该订单不存在, 订单id: %d, 退款id: %d, sub_code: %s, sub_msg: %s", orderID, refundID, resultQuery.SubCode, resultQuery.SubMsg)
 	}
 
 	// 状态对齐
