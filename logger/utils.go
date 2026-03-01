@@ -13,21 +13,34 @@ import (
 	"strings"
 )
 
-// SensitiveFields 全局变量敏感字段关键字切片
-var SensitiveFields = []string{"password", "token", "secret"}
+// sensitiveFields 敏感字段关键字切片
+var sensitiveFields = []string{"password", "token", "secret"}
+
+// GetSensitiveFields 获取敏感字段关键字切片的副本, 避免外部修改原切片
+func GetSensitiveFields() []string {
+	fieldsCopy := make([]string, len(sensitiveFields))
+	copy(fieldsCopy, sensitiveFields)
+	return fieldsCopy
+}
+
+// SetSensitiveFields 设置敏感字段关键字切片, 替换原切片内容
+func SetSensitiveFields(fields []string) {
+	sensitiveFields = make([]string, len(fields))
+	copy(sensitiveFields, fields)
+}
 
 // MaskSensitiveFields 将传入 data 包含敏感字段关键字(包含即可,大小写不敏感)的字段值替换为 "******"
-func MaskSensitiveFields(data any, sensitiveFields []string) {
+func MaskSensitiveFields(data any) {
 	v := reflect.ValueOf(data)
 	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
-	recursiveMaskSensitiveFields(v, sensitiveFields)
+	recursiveMaskSensitiveFields(v, GetSensitiveFields())
 }
 
 // recursiveMaskSensitiveFields 递归处理敏感字段加上掩码
-func recursiveMaskSensitiveFields(v reflect.Value, sensitiveFields []string) {
+func recursiveMaskSensitiveFields(v reflect.Value, fields []string) {
 	// 如果是指针类型, 获取其指向的值
 	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
@@ -41,18 +54,24 @@ func recursiveMaskSensitiveFields(v reflect.Value, sensitiveFields []string) {
 	// 分发不同类型的处理逻辑
 	switch v.Kind() {
 	case reflect.Struct:
-		handleStructFields(v, sensitiveFields)
+		handleStructFields(v, fields)
 	case reflect.Map:
-		handleMapValues(v, sensitiveFields)
+		handleMapValues(v, fields)
 	case reflect.Slice:
-		handleSliceElements(v, sensitiveFields)
+		handleSliceElements(v, fields)
 	}
 }
 
-// isFieldSensitive 判断字段名是否包含任意敏感关键字(不区分大小写)
-func isFieldSensitive(lowerFieldName string, sensitiveFields []string) bool {
-	for _, sensitiveField := range sensitiveFields {
-		if strings.Contains(lowerFieldName, strings.ToLower(sensitiveField)) {
+// isFieldSensitive 判断字段名是否包含任意敏感关键字(不区分大小写, 忽略下划线差异)
+//
+// Go 结构体字段名为 PascalCase(如 AppKey), 转为小写后为 appkey;
+// 而用户配置的敏感关键字可能为 snake_case(如 app_key), 需要去掉下划线后再做包含匹配.
+func isFieldSensitive(lowerFieldName string, fields []string) bool {
+	// 去掉字段名中的下划线(防御性处理)
+	normalizedField := strings.ReplaceAll(lowerFieldName, "_", "")
+	for _, sensitiveField := range fields {
+		normalizedKeyword := strings.ReplaceAll(strings.ToLower(sensitiveField), "_", "")
+		if strings.Contains(normalizedField, normalizedKeyword) {
 			return true
 		}
 	}
@@ -80,7 +99,7 @@ func maskFieldValue(field reflect.Value) {
 }
 
 // handleStructFields 处理结构体的每个字段：判断敏感字段并掩码, 遇到嵌套结构体时递归调用
-func handleStructFields(v reflect.Value, sensitiveFields []string) {
+func handleStructFields(v reflect.Value, fields []string) {
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		fieldType := v.Type().Field(i)
@@ -89,28 +108,37 @@ func handleStructFields(v reflect.Value, sensitiveFields []string) {
 		lowerFieldName := strings.ToLower(fieldType.Name)
 
 		// 检查字段名是否包含任意敏感字段(不区分大小写)
-		if isFieldSensitive(lowerFieldName, sensitiveFields) && field.CanSet() {
+		if isFieldSensitive(lowerFieldName, fields) && field.CanSet() {
 			maskFieldValue(field)
 		}
 
-		// 递归处理嵌套结构体
-		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && !field.IsNil() && field.Elem().Kind() == reflect.Struct) {
-			recursiveMaskSensitiveFields(field, sensitiveFields)
+		// 递归处理嵌套结构体、切片、Map 字段
+		switch field.Kind() {
+		case reflect.Struct:
+			recursiveMaskSensitiveFields(field, fields)
+		case reflect.Pointer:
+			if !field.IsNil() {
+				recursiveMaskSensitiveFields(field, fields)
+			}
+		case reflect.Slice:
+			handleSliceElements(field, fields)
+		case reflect.Map:
+			handleMapValues(field, fields)
 		}
 	}
 }
 
 // handleMapValues 递归处理 Map 类型的值
-func handleMapValues(v reflect.Value, sensitiveFields []string) {
+func handleMapValues(v reflect.Value, fields []string) {
 	for _, key := range v.MapKeys() {
 		val := v.MapIndex(key)
-		recursiveMaskSensitiveFields(val, sensitiveFields)
+		recursiveMaskSensitiveFields(val, fields)
 	}
 }
 
 // handleSliceElements 递归处理 Slice/数组 的每个元素
-func handleSliceElements(v reflect.Value, sensitiveFields []string) {
+func handleSliceElements(v reflect.Value, fields []string) {
 	for i := 0; i < v.Len(); i++ {
-		recursiveMaskSensitiveFields(v.Index(i), sensitiveFields)
+		recursiveMaskSensitiveFields(v.Index(i), fields)
 	}
 }

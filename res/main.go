@@ -85,8 +85,8 @@ func MsgResponse[D any](r *Response[D], c *gin.Context) {
 			return
 		}
 
-		// 移除敏感字段
-		logger.MaskSensitiveFields(&dataCopy, logger.SensitiveFields)
+		// 对敏感数据进行掩码处理
+		logger.MaskSensitiveFields(&dataCopy)
 		fields = append(fields, zap.Any("data", &dataCopy))
 	}
 
@@ -150,8 +150,8 @@ func MsgResXMLResponse(xml []byte, c *gin.Context) {
 			return
 		}
 
-		// 尝试对数据做掩码处理（对字符串类型无副作用）
-		logger.MaskSensitiveFields(&dataCopy, logger.SensitiveFields)
+		// 尝试对数据做掩码处理(对字符串类型无副作用)
+		logger.MaskSensitiveFields(&dataCopy)
 
 		if s, ok := any(dataCopy).([]byte); ok {
 			fields = append(fields, zap.String("xml", string(s)))
@@ -212,8 +212,8 @@ func MsgResHTMLResponse(html []byte, c *gin.Context) {
 			return
 		}
 
-		// 尝试对数据做掩码处理（对字符串类型无副作用）
-		logger.MaskSensitiveFields(&dataCopy, logger.SensitiveFields)
+		// 尝试对数据做掩码处理(对字符串类型无副作用)
+		logger.MaskSensitiveFields(&dataCopy)
 
 		if s, ok := any(dataCopy).([]byte); ok {
 			fields = append(fields, zap.String("html", string(s)))
