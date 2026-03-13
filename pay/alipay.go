@@ -146,7 +146,7 @@ func (a *Alipay) GetNotifyPayment(request *http.Request) (bool, *PaymentResult, 
 		return false, nil, fmt.Errorf("alipay notify parse form error: %w", err)
 	}
 
-	notif, err := a.Client.DecodeNotification(request.Form)
+	notif, err := a.Client.DecodeNotification(context.Background(), request.Form)
 	if err != nil {
 		// 如果 err 不为空，则表示验签失败
 		return false, nil, fmt.Errorf("alipay notify verify sign error: %w", err)
