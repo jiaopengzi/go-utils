@@ -92,6 +92,12 @@ func TestReplaceMarkdownPayTagToEmpty(t *testing.T) {
 			payType:  MarkdownPayRead,
 			expected: "<pay-read></pay-read>",
 		},
+		{
+			name:     "fenced code block 内的 pay-video 保留, 外部 pay-video 清空",
+			input:    "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-video>\n真实付费视频内容\n</pay-video>",
+			payType:  MarkdownPayVideo,
+			expected: "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-video></pay-video>",
+		},
 	}
 
 	for _, tt := range tests {
@@ -239,6 +245,11 @@ func TestReplaceMarkdownPayTagsToEmpty(t *testing.T) {
 			name:     "pay-read pay-download 混合",
 			input:    `<pay-read>内容1</pay-read>普通中间内容<pay-download>内容2</pay-download>`,
 			expected: "<pay-read></pay-read>普通中间内容<pay-download></pay-download>",
+		},
+		{
+			name:     "fenced code block 内的 pay-video 保留, 其他付费标签继续替换",
+			input:    "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-membership></pay-membership>\n\n<pay-read>\n您付费阅读的内容\n</pay-read>\n\n<pay-download>\n您的付费下载内容\n</pay-download>\n\n<pay-key id=\"您的key\" title=\"您的标题\" description=\"您的说明\"></pay-key>\n\n<video-player video-type=\"hls\" id=\"m-2-7f9d0d9c\"></video-player>",
+			expected: "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-membership></pay-membership>\n\n<pay-read></pay-read>\n\n<pay-download></pay-download>\n\n<pay-key id=\"您的key\" title=\"您的标题\" description=\"您的说明\"></pay-key>\n\n<video-player video-type=\"hls\" id=\"m-2-7f9d0d9c\"></video-player>",
 		},
 	}
 

@@ -30,7 +30,15 @@
 			"activityBar.background": "#660000",
 			"activityBar.foreground": "#cccccc",
 			"titleBar.activeBackground": "#660000",
-			"titleBar.activeForeground": "#cccccc"
+			"titleBar.activeForeground": "#cccccc",
+			"titleBar.inactiveBackground": "#630000",
+			"titleBar.inactiveForeground": "#FFFBFB",
+			"statusBar.background": "#630000",
+			"statusBar.foreground": "#FFFBFB",
+			"statusBar.debuggingBackground": "#630000",
+			"statusBar.debuggingForeground": "#FFFBFB",
+			"statusBar.noFolderBackground": "#630000",
+			"statusBar.noFolderForeground": "#FFFBFB"
 		},
 		"chat.experimental.useSkillAdherencePrompt": true,
 		"github.copilot.chat.agentCustomizationSkill.enabled": true,
