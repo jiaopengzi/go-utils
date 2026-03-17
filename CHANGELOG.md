@@ -4,6 +4,13 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+<a name="v0.12.3"></a>
+
+## [v0.12.3] - 2026-03-17
+
+### 🐞 Fix
+
+- 反引号代码块和付费组件嵌套的问题
 <a name="v0.12.2"></a>
 
 ## [v0.12.2] - 2026-03-13
@@ -214,6 +221,7 @@
 
 - 工具库首发。
 
+[v0.12.3]: https://github.com/jiaopengzi/go-utils/compare/v0.12.2...v0.12.3
 [v0.12.2]: https://github.com/jiaopengzi/go-utils/compare/v0.12.1...v0.12.2
 [v0.12.1]: https://github.com/jiaopengzi/go-utils/compare/v0.12.0...v0.12.1
 [v0.12.0]: https://github.com/jiaopengzi/go-utils/compare/v0.11.0...v0.12.0
