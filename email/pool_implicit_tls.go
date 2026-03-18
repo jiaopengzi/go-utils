@@ -97,7 +97,7 @@ func (p *implicitTLSPool) Close() {
 }
 
 // workerLoop 是每个 worker 的主循环：确保与服务器建立连接,
-// 用现有 client 发送邮件, 发生错误时自动重连并重试一次.
+// 在复用连接前先做健康检查, 再发送邮件; 发生错误时自动重连并重试一次.
 func (p *implicitTLSPool) workerLoop() {
 	var client *smtp.Client
 
@@ -113,8 +113,8 @@ func (p *implicitTLSPool) workerLoop() {
 
 	// 处理任务队列
 	for task := range p.tasks {
-		// 确保 client 已连接并完成认证
-		if err := p.ensureClientConnected(&client); err != nil {
+		// 确保 client 已连接, 并在复用旧连接前做健康检查.
+		if err := p.ensureClientReady(&client); err != nil {
 			task.resp <- fmt.Errorf("smtp connect error: %w", err)
 			continue
 		}
@@ -138,15 +138,35 @@ func (p *implicitTLSPool) workerLoop() {
 	}
 }
 
-// ensureClientConnected 确保传入的 client 已连接并认证, 若为 nil 则建立连接
-func (p *implicitTLSPool) ensureClientConnected(client **smtp.Client) error {
+// ensureClientReady 确保传入的 client 可用.
+// 若当前没有连接, 则建立新连接; 若复用旧连接, 则先发送 NOOP 检查服务端是否仍保持该会话.
+func (p *implicitTLSPool) ensureClientReady(client **smtp.Client) error {
 	if *client == nil {
 		c, err := p.connect()
 		if err != nil {
 			return err
 		}
 		*client = c
+
+		return nil
 	}
+
+	if err := (*client).Noop(); err != nil {
+		zap.L().Debug("smtp pooled connection is stale, reconnecting before send",
+			zap.String("addr", p.addr),
+			zap.Error(err),
+		)
+		p.closeClient(*client)
+		*client = nil
+
+		c, connErr := p.connect()
+		if connErr != nil {
+			return fmt.Errorf("smtp health check failed: %w; reconnect failed: %w", err, connErr)
+		}
+
+		*client = c
+	}
+
 	return nil
 }
 

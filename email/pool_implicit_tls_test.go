@@ -76,6 +76,10 @@ type mockSMTPServer struct {
 	// 控制行为: 首次会话中在 MAIL 命令时断开连接, 模拟空闲连接被断开
 	failFirstSend atomic.Bool
 	failCount     atomic.Int32 // 已失败的次数
+
+	// 控制行为: 首次 NOOP 时断开连接, 模拟客户端在发送前健康检查时发现空闲连接已失效
+	failFirstNoop atomic.Bool
+	noopFailCount atomic.Int32
 }
 
 func newMockSMTPServer(t *testing.T) *mockSMTPServer {
@@ -138,6 +142,12 @@ func (s *mockSMTPServer) handleConn(t *testing.T, conn net.Conn) {
 			// 如果设置了 failFirstSend, 首次 MAIL 命令时断开连接(模拟空闲断连)
 			if s.failFirstSend.Load() && s.failCount.Add(1) <= 1 {
 				// 直接关闭连接, 模拟底层 TCP 断开
+				return
+			}
+			_, _ = fmt.Fprintf(conn, "250 OK\r\n")
+
+		case cmd == "NOOP":
+			if s.failFirstNoop.Load() && s.noopFailCount.Add(1) <= 1 {
 				return
 			}
 			_, _ = fmt.Fprintf(conn, "250 OK\r\n")
@@ -268,6 +278,32 @@ func TestImplicitTLSPool_RetryOnStaleConnection(t *testing.T) {
 
 	// 验证: 两封邮件都成功发送
 	assert.Equal(t, int32(2), server.mailCount.Load())
+}
+
+// TestImplicitTLSPool_ReconnectOnStaleNoop 复用连接前的 NOOP 健康检查失败时, 应先重连再发送.
+func TestImplicitTLSPool_ReconnectOnStaleNoop(t *testing.T) {
+	server := newMockSMTPServer(t)
+	defer server.close()
+
+	pool := newTestPool(t, server, 1)
+	defer pool.Close()
+
+	// 先发送一封成功邮件, 建立并保留连接.
+	e1 := newTestEmail()
+	e1.Subject = "First"
+	err := pool.Send(e1, 5*time.Second)
+	require.NoError(t, err, "首封邮件应成功")
+
+	// 下次复用连接时, 让服务器在 NOOP 阶段直接断开.
+	server.failFirstNoop.Store(true)
+
+	// 第二封邮件应在发送前完成重连, 而不是等到 MAIL 阶段才失败.
+	e2 := newTestEmail()
+	e2.Subject = "After stale noop"
+	err = pool.Send(e2, 5*time.Second)
+	assert.NoError(t, err, "NOOP 健康检查发现断连后, 重连发送应成功")
+	assert.Equal(t, int32(2), server.mailCount.Load())
+	assert.Equal(t, int32(0), server.failCount.Load(), "发送前完成健康检查后, 不应再在 MAIL 阶段触发断连")
 }
 
 // TestImplicitTLSPool_ConnectFailure 连接失败时返回错误
