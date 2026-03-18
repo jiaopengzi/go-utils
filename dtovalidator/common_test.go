@@ -3,16 +3,107 @@
 // Author      : jiaopengzi
 // Blog        : https://jiaopengzi.com
 // Copyright   : Copyright (c) 2026 by jiaopengzi, All Rights Reserved.
-// Description : dtovalidator 公共方法测试
+// Description : 通用 DTO 校验器测试
 //
 
 package dtovalidator
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jiaopengzi/go-utils/types"
 )
+
+type mockFieldLevel struct {
+	field any
+}
+
+func (m mockFieldLevel) Top() reflect.Value      { return reflect.ValueOf(struct{}{}) }
+func (m mockFieldLevel) Parent() reflect.Value   { return reflect.ValueOf(struct{}{}) }
+func (m mockFieldLevel) Field() reflect.Value    { return reflect.ValueOf(m.field) }
+func (m mockFieldLevel) Param() string           { return "" }
+func (m mockFieldLevel) GetTag() string          { return "" }
+func (m mockFieldLevel) StructFieldName() string { return "" }
+func (m mockFieldLevel) FieldName() string       { return "" }
+func (m mockFieldLevel) GetStructFieldOK() (reflect.Value, reflect.Kind, bool) {
+	return reflect.Value{}, reflect.Invalid, false
+}
+func (m mockFieldLevel) GetStructFieldOK2() (reflect.Value, reflect.Kind, bool, bool) {
+	return reflect.Value{}, reflect.Invalid, false, false
+}
+func (m mockFieldLevel) ExtractType(field reflect.Value) (reflect.Value, reflect.Kind, bool) {
+	return field, field.Kind(), false
+}
+func (m mockFieldLevel) GetStructFieldOKAdvanced(val reflect.Value, namespace string) (reflect.Value, reflect.Kind, bool) {
+	return reflect.Value{}, reflect.Invalid, false
+}
+func (m mockFieldLevel) GetStructFieldOKAdvanced2(val reflect.Value, namespace string) (reflect.Value, reflect.Kind, bool, bool) {
+	return reflect.Value{}, reflect.Invalid, false, false
+}
+
+var _ validator.FieldLevel = (*mockFieldLevel)(nil)
+
+// TestValidateJSONInt64 校验 JSONInt64 指针支持显式 0.
+func TestValidateJSONInt64(t *testing.T) {
+	zero := types.JSONInt64(0)
+	if !ValidateJSONInt64(mockFieldLevel{field: &zero}) {
+		t.Fatalf("ValidateJSONInt64() = false, want true")
+	}
+}
+
+// TestValidateJSONUint64 校验 JSONUint64 指针支持显式 0.
+func TestValidateJSONUint64(t *testing.T) {
+	zero := types.JSONUint64(0)
+	if !ValidateJSONUint64(mockFieldLevel{field: &zero}) {
+		t.Fatalf("ValidateJSONUint64() = false, want true")
+	}
+}
+
+// TestValidateAndGetJSONUint64Slice 校验 JSONUint64Slice 指针支持.
+func TestValidateAndGetJSONUint64Slice(t *testing.T) {
+	values := types.JSONUint64Slice{1, 2, 3}
+	actual, ok := ValidateAndGetJSONUint64Slice(mockFieldLevel{field: &values})
+
+	if !ok {
+		t.Fatalf("ValidateAndGetJSONUint64Slice() ok = false, want true")
+	}
+
+	if len(actual) != len(values) {
+		t.Fatalf("ValidateAndGetJSONUint64Slice() len = %d, want %d", len(actual), len(values))
+	}
+
+	for i, value := range values {
+		if actual[i] != value {
+			t.Fatalf("ValidateAndGetJSONUint64Slice()[%d] = %v, want %d", i, actual[i], value)
+		}
+	}
+}
+
+// TestValidateAndGetJSONUint64SliceNilPointer 校验 nil 指针切片无效.
+func TestValidateAndGetJSONUint64SliceNilPointer(t *testing.T) {
+	var values *types.JSONUint64Slice
+	if _, ok := ValidateAndGetJSONUint64Slice(mockFieldLevel{field: values}); ok {
+		t.Fatalf("ValidateAndGetJSONUint64Slice() ok = true, want false")
+	}
+}
+
+// TestValidateEnumString 校验 string 指针枚举兼容.
+func TestValidateEnumString(t *testing.T) {
+	value := "post"
+	if !ValidateEnumString(mockFieldLevel{field: &value}, "post", "page") {
+		t.Fatalf("ValidateEnumString() = false, want true")
+	}
+}
+
+// TestValidateInt 校验 int 指针支持 0.
+func TestValidateInt(t *testing.T) {
+	zero := 0
+	if !ValidateInt(mockFieldLevel{field: &zero}) {
+		t.Fatalf("ValidateInt() = false, want true")
+	}
+}
 
 func TestStringHasPrefixIgnoreCase(t *testing.T) {
 	cases := []struct {

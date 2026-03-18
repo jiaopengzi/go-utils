@@ -9,6 +9,7 @@
 package dtovalidator
 
 import (
+	"reflect"
 	"slices"
 	"strings"
 
@@ -27,7 +28,7 @@ func init() {
 
 	RegisterValidator("ValidateInt", ValidatorEntry{
 		ValidatorFunc: ValidateInt,
-		ErrMsg:        "参数需要正整数.",
+		ErrMsg:        "参数需要非负整数.",
 	})
 
 	RegisterValidator("ValidateIntYear", ValidatorEntry{
@@ -42,7 +43,7 @@ func init() {
 
 	RegisterValidator("ValidateJSONUint64", ValidatorEntry{
 		ValidatorFunc: ValidateJSONUint64,
-		ErrMsg:        "参数需要正整数.",
+		ErrMsg:        "参数需要非负整数.",
 	})
 
 	RegisterValidator("ValidateJSONUint64Slice", ValidatorEntry{
@@ -52,7 +53,7 @@ func init() {
 
 	RegisterValidator("ValidateJSONInt64", ValidatorEntry{
 		ValidatorFunc: ValidateJSONInt64,
-		ErrMsg:        "参数需要正整数.",
+		ErrMsg:        "参数需要非负整数.",
 	})
 
 	RegisterValidator("ValidateJSONInt64Slice", ValidatorEntry{
@@ -80,24 +81,29 @@ func init() {
 
 // ValidatePaginate 分页参数校验
 func ValidatePaginate(fl validator.FieldLevel) bool {
-	// 校验分页参数 判断是否为正整数
-	page := fl.Field().Int()
+	page, ok := extractInt64Field(fl.Field())
+	if !ok {
+		return false
+	}
+
 	return page >= 1
 }
 
-// ValidateInt 校验正整数
+// ValidateInt 校验非负整数
 func ValidateInt(fl validator.FieldLevel) bool {
-	// 校验正整数
 	_, ok := ValidateAndGetJSONInt(fl)
 
 	return ok
 }
 
+// ValidateAndGetJSONInt 校验并获取 int64, 兼容值类型和指针类型.
 func ValidateAndGetJSONInt(fl validator.FieldLevel) (int64, bool) {
-	// 校验正整数
-	value := fl.Field().Int()
+	value, ok := extractInt64Field(fl.Field())
+	if !ok {
+		return 0, false
+	}
 
-	return value, value > 0
+	return value, value >= 0
 }
 
 // ValidateIntYear 校验年份
@@ -120,33 +126,26 @@ func ValidateIntMonth(fl validator.FieldLevel) bool {
 	return v >= 1 && v <= 12
 }
 
-// ValidateJSONUint64 校验正整数
+// ValidateJSONUint64 校验非负整数
 func ValidateJSONUint64(fl validator.FieldLevel) bool {
-	// 校验正整数
 	_, ok := ValidateAndGetJSONUint64(fl)
 	return ok
 }
 
-// ValidateJSONInt64 校验正整数
+// ValidateJSONInt64 校验非负整数
 func ValidateJSONInt64(fl validator.FieldLevel) bool {
-	// 校验正整数
 	_, ok := ValidateAndGetJSONInt(fl)
 	return ok
 }
 
-// ValidateAndGetJSONUint64 校验Uint64
+// ValidateAndGetJSONUint64 校验并获取 uint64, 兼容值类型和指针类型.
 func ValidateAndGetJSONUint64(fl validator.FieldLevel) (uint64, bool) {
-	// 校验正整数
-	value, ok := fl.Field().Interface().(types.JSONUint64)
+	value, ok := extractUint64Field(fl.Field())
 	if !ok {
 		return 0, false
 	}
 
-	if uint64(value) > 0 {
-		return uint64(value), true
-	}
-
-	return 0, false
+	return value, true
 }
 
 // ValidateJSONUint64Slice 校验正整数列表
@@ -157,25 +156,16 @@ func ValidateJSONUint64Slice(fl validator.FieldLevel) bool {
 
 // ValidateAndGetJSONUint64Slice 校验并获取 []uint64
 func ValidateAndGetJSONUint64Slice(fl validator.FieldLevel) ([]any, bool) {
-	// 判断是否为空
-	if fl.Field().String() == "" {
+	values, ok := extractUint64SliceField(fl.Field())
+	if !ok {
 		return nil, false
 	}
-	// 判断是否为切片
-	if fl.Field().Kind().String() != FieldTypeSlice {
-		return nil, false
-	}
-	// 判断切片长度
-	if fl.Field().Len() == 0 {
+
+	if len(values) == 0 {
 		return nil, false
 	}
 
 	var uint64Slice []any
-
-	values, ok := fl.Field().Interface().(types.JSONUint64Slice)
-	if !ok {
-		return nil, false
-	}
 
 	for _, value := range values {
 		// 是否能解析为正整数
@@ -231,7 +221,11 @@ func ValidateAndGetJSONInt64Slice(fl validator.FieldLevel) ([]any, bool) {
 
 // ValidateTrimContent 校验内容是否为空，首位是否包含空格
 func ValidateTrimContent(fl validator.FieldLevel) bool {
-	content := fl.Field().String()
+	content, ok := extractStringField(fl.Field())
+	if !ok {
+		return false
+	}
+
 	// 判断content是否为空
 	if content == "" {
 		return false
@@ -257,7 +251,10 @@ func ValidateEnumInt64(fl validator.FieldLevel, validValues ...int64) bool {
 
 // ValidateEnumString 通用的枚举校验函数 string
 func ValidateEnumString(fl validator.FieldLevel, validValues ...string) bool {
-	v := fl.Field().String()
+	v, ok := extractStringField(fl.Field())
+	if !ok {
+		return false
+	}
 	if v == "" {
 		return false
 	}
@@ -284,7 +281,12 @@ func ValidateCurrency(fl validator.FieldLevel) bool {
 // MIG6MG4CAQAwFDESMBAGA1UEAxMJbG9jYWxob3N0MCowBQYDK2VwAyEAr2h/kLhK
 // -----END CERTIFICATE REQUEST-----
 func ValidateCSR(fl validator.FieldLevel) bool {
-	csr := strings.TrimSpace(fl.Field().String())
+	value, ok := extractStringField(fl.Field())
+	if !ok {
+		return false
+	}
+
+	csr := strings.TrimSpace(value)
 	if csr == "" {
 		return false
 	}
@@ -342,4 +344,81 @@ func ValidateTransactionFlowType(fl validator.FieldLevel) bool {
 		int64(model.TransactionTypeRefund),
 		int64(model.TransactionTypePenalty),
 	)
+}
+
+// derefFieldValue 解引用指针字段, 直到拿到最终值.
+func derefFieldValue(field reflect.Value) (reflect.Value, bool) {
+	if !field.IsValid() {
+		return reflect.Value{}, false
+	}
+
+	for field.Kind() == reflect.Pointer {
+		if field.IsNil() {
+			return reflect.Value{}, false
+		}
+		field = field.Elem()
+	}
+
+	return field, true
+}
+
+// extractInt64Field 提取 int64 字段值, 兼容值类型和指针类型.
+func extractInt64Field(field reflect.Value) (int64, bool) {
+	field, ok := derefFieldValue(field)
+	if !ok {
+		return 0, false
+	}
+
+	if field.CanInt() {
+		return field.Int(), true
+	}
+
+	if value, ok := field.Interface().(types.JSONInt64); ok {
+		return int64(value), true
+	}
+
+	return 0, false
+}
+
+// extractUint64Field 提取 uint64 字段值, 兼容值类型和指针类型.
+func extractUint64Field(field reflect.Value) (uint64, bool) {
+	field, ok := derefFieldValue(field)
+	if !ok {
+		return 0, false
+	}
+
+	if field.CanUint() {
+		return field.Uint(), true
+	}
+
+	if value, ok := field.Interface().(types.JSONUint64); ok {
+		return uint64(value), true
+	}
+
+	return 0, false
+}
+
+// extractStringField 提取 string 字段值, 兼容值类型和指针类型.
+func extractStringField(field reflect.Value) (string, bool) {
+	field, ok := derefFieldValue(field)
+	if !ok || field.Kind() != reflect.String {
+		return "", false
+	}
+
+	return field.String(), true
+}
+
+// extractUint64SliceField 提取 uint64 切片字段值, 兼容值类型和指针类型.
+func extractUint64SliceField(field reflect.Value) (types.JSONUint64Slice, bool) {
+	field, ok := derefFieldValue(field)
+	if !ok || field.Kind() != reflect.Slice {
+		return nil, false
+	}
+
+	values, ok := field.Interface().(types.JSONUint64Slice)
+	if !ok {
+		return nil, false
+	}
+
+	return values, true
 }
