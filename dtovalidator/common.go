@@ -28,7 +28,7 @@ func init() {
 
 	RegisterValidator("ValidateInt", ValidatorEntry{
 		ValidatorFunc: ValidateInt,
-		ErrMsg:        "参数需要非负整数.",
+		ErrMsg:        "参数需要正整数.",
 	})
 
 	RegisterValidator("ValidateIntYear", ValidatorEntry{
@@ -43,7 +43,7 @@ func init() {
 
 	RegisterValidator("ValidateJSONUint64", ValidatorEntry{
 		ValidatorFunc: ValidateJSONUint64,
-		ErrMsg:        "参数需要非负整数.",
+		ErrMsg:        "参数需要正整数.",
 	})
 
 	RegisterValidator("ValidateJSONUint64Slice", ValidatorEntry{
@@ -53,7 +53,7 @@ func init() {
 
 	RegisterValidator("ValidateJSONInt64", ValidatorEntry{
 		ValidatorFunc: ValidateJSONInt64,
-		ErrMsg:        "参数需要非负整数.",
+		ErrMsg:        "参数需要正整数.",
 	})
 
 	RegisterValidator("ValidateJSONInt64Slice", ValidatorEntry{
@@ -89,7 +89,7 @@ func ValidatePaginate(fl validator.FieldLevel) bool {
 	return page >= 1
 }
 
-// ValidateInt 校验非负整数
+// ValidateInt 校验正整数
 func ValidateInt(fl validator.FieldLevel) bool {
 	_, ok := ValidateAndGetJSONInt(fl)
 
@@ -103,7 +103,7 @@ func ValidateAndGetJSONInt(fl validator.FieldLevel) (int64, bool) {
 		return 0, false
 	}
 
-	return value, value >= 0
+	return value, value > 0
 }
 
 // ValidateIntYear 校验年份
@@ -126,13 +126,13 @@ func ValidateIntMonth(fl validator.FieldLevel) bool {
 	return v >= 1 && v <= 12
 }
 
-// ValidateJSONUint64 校验非负整数
+// ValidateJSONUint64 校验正整数
 func ValidateJSONUint64(fl validator.FieldLevel) bool {
 	_, ok := ValidateAndGetJSONUint64(fl)
 	return ok
 }
 
-// ValidateJSONInt64 校验非负整数
+// ValidateJSONInt64 校验正整数
 func ValidateJSONInt64(fl validator.FieldLevel) bool {
 	_, ok := ValidateAndGetJSONInt(fl)
 	return ok
@@ -145,7 +145,7 @@ func ValidateAndGetJSONUint64(fl validator.FieldLevel) (uint64, bool) {
 		return 0, false
 	}
 
-	return value, true
+	return value, value > 0
 }
 
 // ValidateJSONUint64Slice 校验正整数列表

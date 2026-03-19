@@ -45,19 +45,29 @@ func (m mockFieldLevel) GetStructFieldOKAdvanced2(val reflect.Value, namespace s
 
 var _ validator.FieldLevel = (*mockFieldLevel)(nil)
 
-// TestValidateJSONInt64 校验 JSONInt64 指针支持显式 0.
+// TestValidateJSONInt64 校验 JSONInt64 指针兼容且仍要求正整数.
 func TestValidateJSONInt64(t *testing.T) {
-	zero := types.JSONInt64(0)
-	if !ValidateJSONInt64(mockFieldLevel{field: &zero}) {
+	value := types.JSONInt64(1)
+	if !ValidateJSONInt64(mockFieldLevel{field: &value}) {
 		t.Fatalf("ValidateJSONInt64() = false, want true")
+	}
+
+	zero := types.JSONInt64(0)
+	if ValidateJSONInt64(mockFieldLevel{field: &zero}) {
+		t.Fatalf("ValidateJSONInt64() = true, want false")
 	}
 }
 
-// TestValidateJSONUint64 校验 JSONUint64 指针支持显式 0.
+// TestValidateJSONUint64 校验 JSONUint64 指针兼容且仍要求正整数.
 func TestValidateJSONUint64(t *testing.T) {
-	zero := types.JSONUint64(0)
-	if !ValidateJSONUint64(mockFieldLevel{field: &zero}) {
+	value := types.JSONUint64(1)
+	if !ValidateJSONUint64(mockFieldLevel{field: &value}) {
 		t.Fatalf("ValidateJSONUint64() = false, want true")
+	}
+
+	zero := types.JSONUint64(0)
+	if ValidateJSONUint64(mockFieldLevel{field: &zero}) {
+		t.Fatalf("ValidateJSONUint64() = true, want false")
 	}
 }
 
@@ -97,11 +107,16 @@ func TestValidateEnumString(t *testing.T) {
 	}
 }
 
-// TestValidateInt 校验 int 指针支持 0.
+// TestValidateInt 校验 int 指针兼容且仍要求正整数.
 func TestValidateInt(t *testing.T) {
-	zero := 0
-	if !ValidateInt(mockFieldLevel{field: &zero}) {
+	value := 1
+	if !ValidateInt(mockFieldLevel{field: &value}) {
 		t.Fatalf("ValidateInt() = false, want true")
+	}
+
+	zero := 0
+	if ValidateInt(mockFieldLevel{field: &zero}) {
+		t.Fatalf("ValidateInt() = true, want false")
 	}
 }
 
