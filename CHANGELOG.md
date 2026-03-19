@@ -5,6 +5,14 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.12.5"></a>
+
+## [v0.12.5] - 2026-03-19
+
+### ⏪ Revert
+
+- 检验器仅兼容指针不改原有功能 正整数
+
 <a name="v0.12.4"></a>
 
 ## [v0.12.4] - 2026-03-18
@@ -231,6 +239,7 @@
 
 - 工具库首发。
 
+[v0.12.5]: https://github.com/jiaopengzi/go-utils/compare/v0.12.4...v0.12.5
 [v0.12.4]: https://github.com/jiaopengzi/go-utils/compare/v0.12.3...v0.12.4
 [v0.12.3]: https://github.com/jiaopengzi/go-utils/compare/v0.12.2...v0.12.3
 [v0.12.2]: https://github.com/jiaopengzi/go-utils/compare/v0.12.1...v0.12.2
