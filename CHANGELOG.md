@@ -5,6 +5,18 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.12.6"></a>
+
+## [v0.12.6] - 2026-03-28
+
+### ⚡️ Perf
+
+- 减少不必要的流程提升日志打印的性能
+- 优化日志界别减少生产输出提升性能
+
+### 🐞 Fix
+
+- 默认增加验证码和健壮一些逻辑
 <a name="v0.12.5"></a>
 
 ## [v0.12.5] - 2026-03-19
@@ -239,6 +251,7 @@
 
 - 工具库首发。
 
+[v0.12.6]: https://github.com/jiaopengzi/go-utils/compare/v0.12.5...v0.12.6
 [v0.12.5]: https://github.com/jiaopengzi/go-utils/compare/v0.12.4...v0.12.5
 [v0.12.4]: https://github.com/jiaopengzi/go-utils/compare/v0.12.3...v0.12.4
 [v0.12.3]: https://github.com/jiaopengzi/go-utils/compare/v0.12.2...v0.12.3
