@@ -278,7 +278,7 @@ func (a *Alipay) CloseOrder(orderID uint64) error {
 		return fmt.Errorf("alipay cancel order failed: code %s, msg %s, sub_code %s, sub_msg %s", result.Code, result.Msg, result.SubCode, result.SubMsg)
 	}
 
-	zap.L().Info("Alipay order closed successfully", zap.Uint64("order_id", orderID))
+	zap.L().Debug("Alipay order closed successfully", zap.Uint64("order_id", orderID))
 
 	return nil
 }

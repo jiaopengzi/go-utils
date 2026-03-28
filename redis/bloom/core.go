@@ -44,7 +44,7 @@ func NewBloom(ctx context.Context, client redis.UniversalClient, redisKey string
 
 	// 已存在则直接返回
 	if exists > 0 {
-		zap.L().Info("布隆过滤器已存在, 无需创建", zap.String("key", redisKey))
+		zap.L().Debug("布隆过滤器已存在, 无需创建", zap.String("key", redisKey))
 
 		return &Bloom{
 			Client:    client,
@@ -66,7 +66,7 @@ func NewBloom(ctx context.Context, client redis.UniversalClient, redisKey string
 
 		zap.L().Warn("布隆过滤器已被其他实例创建, 无需创建", zap.String("key", redisKey))
 	} else {
-		zap.L().Info("成功创建布隆过滤器", zap.String("key", redisKey))
+		zap.L().Debug("成功创建布隆过滤器", zap.String("key", redisKey))
 	}
 
 	return &Bloom{

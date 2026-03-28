@@ -18,6 +18,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
+	"github.com/jiaopengzi/go-utils/logger"
 	"github.com/jiaopengzi/go-utils/redis/stream"
 )
 
@@ -333,7 +334,7 @@ func (c *BaseConsumer[T]) startPendingLoop(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			// context 被取消, 退出循环
-			zap.L().Info("PendingMessage loop stopped", zap.String("consumer", c.ConsumerName))
+			zap.L().Debug("PendingMessage loop stopped", zap.String("consumer", c.ConsumerName))
 			return
 
 		case <-ticker.C:
@@ -351,7 +352,7 @@ func (c *BaseConsumer[T]) startOnlineMessageLoop(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			// context 被取消, 退出循环
-			zap.L().Info("OnlineMessage loop stopped", zap.String("consumer", c.ConsumerName))
+			zap.L().Debug("OnlineMessage loop stopped", zap.String("consumer", c.ConsumerName))
 			return nil
 
 		default:
@@ -394,6 +395,8 @@ func (c *BaseConsumer[T]) AckMessage(msgID string, valueStruct *T, isSuccess boo
 	// 签收消息
 	if err := c.Rdb.XAck(c.Ctx, c.StreamName, c.GroupName, msgID).Err(); err != nil {
 		// 签收失败
+		// 对敏感数据进行掩码处理
+		logger.MaskSensitiveFields(valueStruct)
 		return fmt.Errorf("签收消息失败: msg=%s; value=%+v; %w", msg, valueStruct, err)
 	}
 
@@ -404,9 +407,12 @@ func (c *BaseConsumer[T]) AckMessage(msgID string, valueStruct *T, isSuccess boo
 		}
 	}
 
-	// 签收成功
-	msg = fmt.Sprintf("签收消息成功, %s", msg)
-	zap.L().Info(msg, zap.Any("value", valueStruct))
+	// 判断当前 zap 日志级别, 只有在 Debug 级别才打印签收成功的日志, 提高性能
+	if zap.L().Core().Enabled(zap.DebugLevel) {
+		msg = fmt.Sprintf("签收消息成功, %s", msg)
+		logger.MaskSensitiveFields(valueStruct)
+		zap.L().Debug(msg, zap.Any("value", valueStruct))
+	}
 
 	return nil
 }

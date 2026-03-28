@@ -135,7 +135,7 @@ func createConsumerIfNeeded[T any](consumer *BaseConsumer[T], i int) error {
 	}
 
 	// 记录日志
-	zap.L().Info("创建消费者成功", zap.String("consumerName", consumer.ConsumerName))
+	zap.L().Debug("创建消费者成功", zap.String("consumerName", consumer.ConsumerName))
 
 	return nil
 }
@@ -167,7 +167,7 @@ func removeExtraConsumers[T any](consumer *BaseConsumer[T], consumerInfos []redi
 				}
 
 				// 记录日志
-				zap.L().Info("移除消费者成功", zap.String("consumerName", consumerInfo.Name))
+				zap.L().Debug("移除消费者成功", zap.String("consumerName", consumerInfo.Name))
 			}
 
 			MaxForCount++
@@ -202,7 +202,7 @@ func parseMessageValue[T any](message redis.XMessage, msgKey string) (*T, error)
 		return nil, err
 	}
 
-	// zap.L().Debug("异步处理消息前", zap.String("msgStr", msgStr))
+	zap.L().Debug("异步处理消息前", zap.String("msgStr", msgStr))
 	return &valueStruct, nil
 }
 

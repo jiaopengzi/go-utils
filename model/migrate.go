@@ -26,7 +26,7 @@ func CustomAutoMigrate(db *gorm.DB) (err error) {
 		return fmt.Errorf("custom migrate failed: %w", err)
 	}
 
-	zap.L().Info("custom migrate success")
+	zap.L().Debug("custom migrate success")
 
 	return nil
 }

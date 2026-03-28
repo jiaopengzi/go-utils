@@ -98,7 +98,7 @@ func (tm *TaskManager) createTaskExecutor(task *Task, spec string, isOneTime boo
 				return
 			}
 
-			zap.L().Info("任务已过期，停止执行", zap.String("任务名", string(task.Name)))
+			zap.L().Debug("任务已过期，停止执行", zap.String("任务名", string(task.Name)))
 
 			return
 		}
@@ -118,7 +118,7 @@ func (tm *TaskManager) createTaskExecutor(task *Task, spec string, isOneTime boo
 				return
 			}
 
-			zap.L().Info("一次性任务已执行完毕，停止执行", zap.String("任务名", string(task.Name)))
+			zap.L().Debug("一次性任务已执行完毕，停止执行", zap.String("任务名", string(task.Name)))
 		}
 	})
 
@@ -208,5 +208,5 @@ func (tm *TaskManager) Stop() {
 		delete(tm.tasks, name)
 	}
 
-	zap.L().Info("所有任务已停止")
+	zap.L().Debug("所有任务已停止")
 }
