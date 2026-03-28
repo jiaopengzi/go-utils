@@ -74,23 +74,26 @@ func MsgResponse[D any](r *Response[D], c *gin.Context) {
 		Data:      r.Data,
 	})
 
-	fields = append(fields, zap.Any("code", r.Code), zap.String("msg", r.Code.Msg()))
+	// 根据当前的日志级别判断是否走响应体日志记录逻辑, 提高性能
+	if zap.L().Core().Enabled(zap.InfoLevel) {
+		fields = append(fields, zap.Any("code", r.Code), zap.String("msg", r.Code.Msg()))
 
-	// 如果配置了 enableResponseBody, 并且 Data 不为 nil, 则记录 Data
-	if enableResponseBody && !utils.IsInterfaceNil(r.Data) {
-		// 创建 data 的副本
-		dataCopy, err := utils.DeepCopy(r.Data)
-		if err != nil {
-			zap.L().Error("dataCopy, err := utils.DeepCopy[*R](data) failed")
-			return
+		// 如果配置了 enableResponseBody, 并且 Data 不为 nil, 则记录 Data
+		if enableResponseBody && !utils.IsInterfaceNil(r.Data) {
+			// 创建 data 的副本
+			dataCopy, err := utils.DeepCopy(r.Data)
+			if err != nil {
+				zap.L().Error("dataCopy, err := utils.DeepCopy[*R](data) failed")
+				return
+			}
+
+			// 对敏感数据进行掩码处理
+			logger.MaskSensitiveFields(&dataCopy)
+			fields = append(fields, zap.Any("data", &dataCopy))
 		}
 
-		// 对敏感数据进行掩码处理
-		logger.MaskSensitiveFields(&dataCopy)
-		fields = append(fields, zap.Any("data", &dataCopy))
+		zap.L().Info("响应信息", fields...)
 	}
-
-	zap.L().Info("响应信息", fields...)
 
 	c.Abort()
 }
