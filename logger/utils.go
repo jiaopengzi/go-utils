@@ -14,7 +14,7 @@ import (
 )
 
 // sensitiveFields 敏感字段关键字切片
-var sensitiveFields = []string{"password", "token", "secret"}
+var sensitiveFields = []string{"password", "token", "secret", "captcha"}
 
 // GetSensitiveFields 获取敏感字段关键字切片的副本, 避免外部修改原切片
 func GetSensitiveFields() []string {
@@ -23,7 +23,7 @@ func GetSensitiveFields() []string {
 	return fieldsCopy
 }
 
-// SetSensitiveFields 设置敏感字段关键字切片, 替换原切片内容
+// SetSensitiveFields 设置敏感字段关键字切片, 替换原切片内容.
 func SetSensitiveFields(fields []string) {
 	sensitiveFields = make([]string, len(fields))
 	copy(sensitiveFields, fields)
@@ -41,8 +41,16 @@ func MaskSensitiveFields(data any) {
 
 // recursiveMaskSensitiveFields 递归处理敏感字段加上掩码
 func recursiveMaskSensitiveFields(v reflect.Value, fields []string) {
+	if !v.IsValid() {
+		return
+	}
+
 	// 如果是指针类型, 获取其指向的值
 	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return
+		}
+
 		v = v.Elem()
 	}
 
@@ -106,9 +114,10 @@ func handleStructFields(v reflect.Value, fields []string) {
 
 		// 将字段名转换为小写以进行大小写不敏感的匹配
 		lowerFieldName := strings.ToLower(fieldType.Name)
+		isSensitive := isFieldSensitive(lowerFieldName, fields)
 
 		// 检查字段名是否包含任意敏感字段(不区分大小写)
-		if isFieldSensitive(lowerFieldName, fields) && field.CanSet() {
+		if isSensitive && field.CanSet() {
 			maskFieldValue(field)
 		}
 

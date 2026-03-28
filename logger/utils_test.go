@@ -172,7 +172,7 @@ type PayConfigLike struct {
 func TestMaskSensitiveFields_SnakeCaseKeywords(t *testing.T) {
 	// 设置包含下划线的敏感关键字
 	SetSensitiveFields([]string{"password", "token", "secret", "app_key", "mch_private_key", "api_v3_key", "app_private_key", "encrypt_key"})
-	defer SetSensitiveFields([]string{"password", "token", "secret"}) // 恢复默认
+	defer SetSensitiveFields([]string{"password", "token", "secret", "captcha"}) // 恢复默认
 
 	input := &PayConfigLike{
 		AppID:         "2021005168672084",
@@ -206,5 +206,42 @@ func TestMaskSensitiveFields_SnakeCaseKeywords(t *testing.T) {
 	// 校验
 	if !reflect.DeepEqual(copied, expected) {
 		t.Errorf("expected %+v, but got %+v", expected, copied)
+	}
+}
+
+// TestSetSensitiveFields_ReplaceFields 测试设置自定义敏感关键字时, 会替换原有关键字列表.
+func TestSetSensitiveFields_ReplaceFields(t *testing.T) {
+	defer SetSensitiveFields([]string{"password", "token", "secret", "captcha"})
+
+	type ReplaceFieldsConfig struct {
+		Password string
+		Captcha  string
+		AppKey   string
+	}
+
+	input := &ReplaceFieldsConfig{
+		Password: "password_value",
+		Captcha:  "captcha_value",
+		AppKey:   "app_key_value",
+	}
+
+	SetSensitiveFields([]string{"app_key"})
+	MaskSensitiveFields(input)
+
+	if input.Password != "password_value" {
+		t.Fatalf("expected Password to remain unchanged, got %q", input.Password)
+	}
+
+	if input.Captcha != "captcha_value" {
+		t.Fatalf("expected Captcha to remain unchanged, got %q", input.Captcha)
+	}
+
+	if input.AppKey != "******" {
+		t.Fatalf("expected AppKey to be masked, got %q", input.AppKey)
+	}
+
+	fields := GetSensitiveFields()
+	if !reflect.DeepEqual(fields, []string{"app_key"}) {
+		t.Fatalf("expected sensitive fields to be replaced, got %+v", fields)
 	}
 }
