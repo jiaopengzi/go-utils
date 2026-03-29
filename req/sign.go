@@ -21,10 +21,11 @@ import (
 
 // HTTP 相关的签名头部常量a
 const (
-	HeaderAppID     = "X-App-Id"    // 应用 ID
-	HeaderTimestamp = "X-Timestamp" // 时间戳
-	HeaderNonce     = "X-Nonce"     // 随机数
-	HeaderSignature = "X-Signature" // 签名
+	HeaderAppID             = "X-App-Id"              // 应用 ID
+	HeaderTimestamp         = "X-Timestamp"           // 时间戳
+	HeaderNonce             = "X-Nonce"               // 随机数
+	HeaderSignature         = "X-Signature"           // 签名
+	HeaderBlogServerVersion = "X-Blog-Server-Version" // blog-server 版本号
 )
 
 // EncryptedData 加密数据结构
@@ -41,6 +42,7 @@ type SignOptions struct {
 	TimestampNano          string            // 时间戳(纳秒)
 	Nonce                  string            // 随机数
 	EncryptedData          string            // 加密数据(请求体)
+	Version                string            // blog-server 版本号
 	Cert                   string            // 证书
 	CertKey                string            // 证书密钥
 	Signature              string            // 签名
@@ -57,7 +59,8 @@ func (o *SignOptions) GetSignData() []byte {
 			o.AppID + "\n" +
 			o.TimestampNano + "\n" +
 			o.Nonce + "\n" +
-			o.EncryptedData,
+			o.EncryptedData + "\n" +
+			o.Version,
 	)
 }
 

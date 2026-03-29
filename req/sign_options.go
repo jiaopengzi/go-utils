@@ -43,6 +43,7 @@ func BuildSignOptions(c *gin.Context, opts ...SignOption) SignOptions {
 		AppID:         c.GetHeader(HeaderAppID),
 		TimestampNano: c.GetHeader(HeaderTimestamp),
 		Nonce:         c.GetHeader(HeaderNonce),
+		Version:       c.GetHeader(HeaderBlogServerVersion),
 		Signature:     c.GetHeader(HeaderSignature),
 	}
 
