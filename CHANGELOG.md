@@ -4,6 +4,13 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+<a name="v0.13.0"></a>
+
+## [v0.13.0] - 2026-03-29
+
+### ✨ Feat
+
+- **req:** 请求增加 server 版本信息
 
 <a name="v0.12.6"></a>
 
@@ -251,6 +258,7 @@
 
 - 工具库首发。
 
+[v0.13.0]: https://github.com/jiaopengzi/go-utils/compare/v0.12.6...v0.13.0
 [v0.12.6]: https://github.com/jiaopengzi/go-utils/compare/v0.12.5...v0.12.6
 [v0.12.5]: https://github.com/jiaopengzi/go-utils/compare/v0.12.4...v0.12.5
 [v0.12.4]: https://github.com/jiaopengzi/go-utils/compare/v0.12.3...v0.12.4
