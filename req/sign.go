@@ -51,17 +51,21 @@ type SignOptions struct {
 
 // GetSignData 获取用于签名的数据字符串
 func (o *SignOptions) GetSignData() []byte {
-	// 使用 \n 连接各个字段
-	return []byte(
-		o.HTTPMethod + "\n" +
-			o.Path + "\n" +
-			BuildQueryString(o.QueryParams) + "\n" +
-			o.AppID + "\n" +
-			o.TimestampNano + "\n" +
-			o.Nonce + "\n" +
-			o.EncryptedData + "\n" +
-			o.Version,
-	)
+	parts := []string{
+		o.HTTPMethod,
+		o.Path,
+		BuildQueryString(o.QueryParams),
+		o.AppID,
+		o.TimestampNano,
+		o.Nonce,
+		o.EncryptedData,
+	}
+
+	if o.Version != "" {
+		parts = append(parts, o.Version)
+	}
+
+	return []byte(strings.Join(parts, "\n"))
 }
 
 // Sign 生成请求签名并设置到 SignOptions.Signature 字段

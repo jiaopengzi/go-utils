@@ -66,40 +66,109 @@ func TestBuildQueryString(t *testing.T) {
 }
 
 func TestSignOptions_GetSignData(t *testing.T) {
-	opt := SignOptions{
-		HTTPMethod:    "POST",
-		Path:          "/api/test",
-		QueryParams:   map[string]string{"b": "2", "a": "1"},
-		AppID:         "app123",
-		TimestampNano: "1234567890",
-		Nonce:         "nonce123",
-		EncryptedData: "encrypted_body",
+	tests := []struct {
+		name string
+		opt  SignOptions
+		want string
+	}{
+		{
+			name: "不含版本号",
+			opt: SignOptions{
+				HTTPMethod:    "POST",
+				Path:          "/api/test",
+				QueryParams:   map[string]string{"b": "2", "a": "1"},
+				AppID:         "app123",
+				TimestampNano: "1234567890",
+				Nonce:         "nonce123",
+				EncryptedData: "encrypted_body",
+			},
+			want: "POST\n/api/test\na=1&b=2\napp123\n1234567890\nnonce123\nencrypted_body",
+		},
+		{
+			name: "含版本号",
+			opt: SignOptions{
+				HTTPMethod:    "POST",
+				Path:          "/api/test",
+				QueryParams:   map[string]string{"b": "2", "a": "1"},
+				AppID:         "app123",
+				TimestampNano: "1234567890",
+				Nonce:         "nonce123",
+				EncryptedData: "encrypted_body",
+				Version:       "v1.2.3",
+			},
+			want: "POST\n/api/test\na=1&b=2\napp123\n1234567890\nnonce123\nencrypted_body\nv1.2.3",
+		},
+		{
+			name: "空字段不含版本号",
+			opt: SignOptions{
+				HTTPMethod:    "GET",
+				Path:          "/",
+				QueryParams:   nil,
+				AppID:         "",
+				TimestampNano: "",
+				Nonce:         "",
+				EncryptedData: "",
+			},
+			want: "GET\n/\n\n\n\n\n",
+		},
 	}
 
-	got := string(opt.GetSignData())
-	want := "POST\n/api/test\na=1&b=2\napp123\n1234567890\nnonce123\nencrypted_body"
-
-	if got != want {
-		t.Errorf("GetSignData() = %q, want %q", got, want)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := string(tt.opt.GetSignData())
+			if got != tt.want {
+				t.Errorf("GetSignData() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestSignOptions_GetSignData_EmptyFields(t *testing.T) {
-	opt := SignOptions{
-		HTTPMethod:    "GET",
-		Path:          "/",
-		QueryParams:   nil,
-		AppID:         "",
-		TimestampNano: "",
-		Nonce:         "",
-		EncryptedData: "",
+func TestBuildSignOptions_Version(t *testing.T) {
+	tests := []struct {
+		name          string
+		versionHeader string
+		withVersion   bool
+		wantVersion   string
+	}{
+		{
+			name:          "默认不读取版本头",
+			versionHeader: "v1.2.3",
+			withVersion:   false,
+			wantVersion:   "",
+		},
+		{
+			name:          "WithVersion 读取版本头",
+			versionHeader: "v1.2.3",
+			withVersion:   true,
+			wantVersion:   "v1.2.3",
+		},
+		{
+			name:          "WithVersion 但头部为空",
+			versionHeader: "",
+			withVersion:   true,
+			wantVersion:   "",
+		},
 	}
 
-	got := string(opt.GetSignData())
-	want := "GET\n/\n\n\n\n\n"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+			if tt.versionHeader != "" {
+				c.Request.Header.Set(HeaderBlogServerVersion, tt.versionHeader)
+			}
 
-	if got != want {
-		t.Errorf("GetSignData() = %q, want %q", got, want)
+			var opts []SignOption
+			if tt.withVersion {
+				opts = append(opts, WithVersion(c))
+			}
+
+			got := BuildSignOptions(c, opts...)
+			if got.Version != tt.wantVersion {
+				t.Errorf("BuildSignOptions() Version = %q, want %q", got.Version, tt.wantVersion)
+			}
+		})
 	}
 }
 

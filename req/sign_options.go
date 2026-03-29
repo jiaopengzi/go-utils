@@ -34,6 +34,13 @@ func WithMaxTimestampDiffSecond(maxDiff int64) SignOption {
 	}
 }
 
+// WithVersion 从请求头读取 blog-server 版本号并设置到 SignOptions 中
+func WithVersion(c *gin.Context) SignOption {
+	return func(o *SignOptions) {
+		o.Version = c.GetHeader(HeaderBlogServerVersion)
+	}
+}
+
 // BuildSignOptions 构建 SignOptions 实例
 // 可选参数 opts 用于配置 SignOptions 的其他字段
 func BuildSignOptions(c *gin.Context, opts ...SignOption) SignOptions {
@@ -43,7 +50,6 @@ func BuildSignOptions(c *gin.Context, opts ...SignOption) SignOptions {
 		AppID:         c.GetHeader(HeaderAppID),
 		TimestampNano: c.GetHeader(HeaderTimestamp),
 		Nonce:         c.GetHeader(HeaderNonce),
-		Version:       c.GetHeader(HeaderBlogServerVersion),
 		Signature:     c.GetHeader(HeaderSignature),
 	}
 
