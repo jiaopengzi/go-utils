@@ -28,6 +28,14 @@ type TestStruct struct {
 	OtherDetails OtherDetails
 }
 
+// ObfuscatedUserRequest 模拟 garble 后字段名被改写, 但 JSON tag 保持稳定的请求结构.
+type ObfuscatedUserRequest struct {
+	FieldA string `json:"user_name"`
+	FieldB string `json:"password"`
+	FieldC string `json:"re_password"`
+	FieldD string `json:"email"`
+}
+
 // Profile 嵌套结构体
 type Profile struct {
 	FirstName string
@@ -243,5 +251,64 @@ func TestSetSensitiveFields_ReplaceFields(t *testing.T) {
 	fields := GetSensitiveFields()
 	if !reflect.DeepEqual(fields, []string{"app_key"}) {
 		t.Fatalf("expected sensitive fields to be replaced, got %+v", fields)
+	}
+}
+
+// TestMaskSensitiveFields_UseJSONTag 测试敏感字段判断优先兼容 JSON tag, 避免 garble 混淆字段名后失效.
+func TestMaskSensitiveFields_UseJSONTag(t *testing.T) {
+	input := &ObfuscatedUserRequest{
+		FieldA: "jiaopengzi",
+		FieldB: "123QWEasd@",
+		FieldC: "123QWEasd@",
+		FieldD: "jiaopengzi@qq.com",
+	}
+
+	expected := &ObfuscatedUserRequest{
+		FieldA: "jiaopengzi",
+		FieldB: "******",
+		FieldC: "******",
+		FieldD: "jiaopengzi@qq.com",
+	}
+
+	copied, err := utils.DeepCopy(input)
+	if err != nil {
+		t.Fatalf("DeepCopy failed: %v", err)
+	}
+
+	MaskSensitiveFields(copied)
+
+	if !reflect.DeepEqual(copied, expected) {
+		t.Fatalf("expected %+v, but got %+v", expected, copied)
+	}
+}
+
+// TestMaskSensitiveFields_MapStringKey 测试 map 字符串 key 也能按稳定业务标识掩码.
+func TestMaskSensitiveFields_MapStringKey(t *testing.T) {
+	input := map[string]any{
+		"user_name":   "jiaopengzi",
+		"password":    "123QWEasd@",
+		"re_password": "123QWEasd@",
+		"profile": map[string]any{
+			"access_token": "token_value",
+		},
+	}
+
+	MaskSensitiveFields(input)
+
+	if input["password"] != "******" {
+		t.Fatalf("input[password] = %v, want %q", input["password"], "******")
+	}
+
+	if input["re_password"] != "******" {
+		t.Fatalf("input[re_password] = %v, want %q", input["re_password"], "******")
+	}
+
+	profile, ok := input["profile"].(map[string]any)
+	if !ok {
+		t.Fatalf("input[profile] type = %T, want map[string]any", input["profile"])
+	}
+
+	if profile["access_token"] != "******" {
+		t.Fatalf("profile[access_token] = %v, want %q", profile["access_token"], "******")
 	}
 }

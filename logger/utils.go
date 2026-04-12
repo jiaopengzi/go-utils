@@ -32,8 +32,8 @@ func SetSensitiveFields(fields []string) {
 // MaskSensitiveFields 将传入 data 包含敏感字段关键字(包含即可,大小写不敏感)的字段值替换为 "******"
 func MaskSensitiveFields(data any) {
 	v := reflect.ValueOf(data)
-	if v.Kind() == reflect.Pointer {
-		v = v.Elem()
+	if !v.IsValid() {
+		return
 	}
 
 	recursiveMaskSensitiveFields(v, GetSensitiveFields())
@@ -45,18 +45,12 @@ func recursiveMaskSensitiveFields(v reflect.Value, fields []string) {
 		return
 	}
 
-	// 如果是指针类型, 获取其指向的值
-	if v.Kind() == reflect.Pointer {
+	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
 		if v.IsNil() {
 			return
 		}
 
 		v = v.Elem()
-	}
-
-	// 如果值不可设置, 直接返回
-	if !v.CanSet() {
-		return
 	}
 
 	// 分发不同类型的处理逻辑
@@ -70,15 +64,13 @@ func recursiveMaskSensitiveFields(v reflect.Value, fields []string) {
 	}
 }
 
-// isFieldSensitive 判断字段名是否包含任意敏感关键字(不区分大小写, 忽略下划线差异)
+// isFieldSensitive 判断标识名是否包含任意敏感关键字(不区分大小写, 忽略下划线差异)
 //
-// Go 结构体字段名为 PascalCase(如 AppKey), 转为小写后为 appkey;
-// 而用户配置的敏感关键字可能为 snake_case(如 app_key), 需要去掉下划线后再做包含匹配.
-func isFieldSensitive(lowerFieldName string, fields []string) bool {
-	// 去掉字段名中的下划线(防御性处理)
-	normalizedField := strings.ReplaceAll(lowerFieldName, "_", "")
+// 结构体字段名、JSON tag、Map key 都可能作为稳定标识使用, 因此统一做规范化后匹配.
+func isFieldSensitive(identifier string, fields []string) bool {
+	normalizedField := normalizeSensitiveIdentifier(identifier)
 	for _, sensitiveField := range fields {
-		normalizedKeyword := strings.ReplaceAll(strings.ToLower(sensitiveField), "_", "")
+		normalizedKeyword := normalizeSensitiveIdentifier(sensitiveField)
 		if strings.Contains(normalizedField, normalizedKeyword) {
 			return true
 		}
@@ -106,15 +98,40 @@ func maskFieldValue(field reflect.Value) {
 	}
 }
 
+// normalizeSensitiveIdentifier 统一规范化字段名, 便于忽略大小写和下划线差异.
+func normalizeSensitiveIdentifier(identifier string) string {
+	return strings.ReplaceAll(strings.ToLower(identifier), "_", "")
+}
+
+// getSensitiveIdentifiers 返回结构体字段可用于脱敏匹配的稳定标识, 优先使用 JSON tag.
+func getSensitiveIdentifiers(fieldType reflect.StructField) []string {
+	identifiers := []string{fieldType.Name}
+	jsonTag := fieldType.Tag.Get("json")
+	if jsonTag == "" {
+		return identifiers
+	}
+
+	jsonName := strings.Split(jsonTag, ",")[0]
+	if jsonName == "" || jsonName == "-" {
+		return identifiers
+	}
+
+	return append(identifiers, jsonName)
+}
+
 // handleStructFields 处理结构体的每个字段：判断敏感字段并掩码, 遇到嵌套结构体时递归调用
 func handleStructFields(v reflect.Value, fields []string) {
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		fieldType := v.Type().Field(i)
 
-		// 将字段名转换为小写以进行大小写不敏感的匹配
-		lowerFieldName := strings.ToLower(fieldType.Name)
-		isSensitive := isFieldSensitive(lowerFieldName, fields)
+		isSensitive := false
+		for _, identifier := range getSensitiveIdentifiers(fieldType) {
+			if isFieldSensitive(identifier, fields) {
+				isSensitive = true
+				break
+			}
+		}
 
 		// 检查字段名是否包含任意敏感字段(不区分大小写)
 		if isSensitive && field.CanSet() {
@@ -141,7 +158,48 @@ func handleStructFields(v reflect.Value, fields []string) {
 func handleMapValues(v reflect.Value, fields []string) {
 	for _, key := range v.MapKeys() {
 		val := v.MapIndex(key)
+		if key.Kind() == reflect.String && isFieldSensitive(key.String(), fields) {
+			maskedValue, ok := buildMaskedMapValue(val, v.Type().Elem())
+			if ok {
+				v.SetMapIndex(key, maskedValue)
+				continue
+			}
+		}
+
 		recursiveMaskSensitiveFields(val, fields)
+	}
+}
+
+// buildMaskedMapValue 为 Map 敏感键构造掩码值, 支持 string、interface 和 *string 等常见类型.
+func buildMaskedMapValue(val reflect.Value, elemType reflect.Type) (reflect.Value, bool) {
+	const maskedValue = "******"
+
+	for val.IsValid() && (val.Kind() == reflect.Pointer || val.Kind() == reflect.Interface) {
+		if val.IsNil() {
+			break
+		}
+
+		val = val.Elem()
+	}
+
+	switch elemType.Kind() {
+	case reflect.Interface:
+		return reflect.ValueOf(maskedValue), true
+	case reflect.String:
+		return reflect.ValueOf(maskedValue).Convert(elemType), true
+	case reflect.Pointer:
+		if elemType.Elem().Kind() != reflect.String {
+			return reflect.Value{}, false
+		}
+
+		masked := reflect.New(elemType.Elem())
+		masked.Elem().SetString(maskedValue)
+		return masked, true
+	default:
+		if val.IsValid() && val.Kind() == reflect.String && reflect.TypeOf(maskedValue).AssignableTo(elemType) {
+			return reflect.ValueOf(maskedValue), true
+		}
+		return reflect.Value{}, false
 	}
 }
 
