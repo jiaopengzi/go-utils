@@ -4,6 +4,17 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+<a name="v0.13.2"></a>
+
+## [v0.13.2] - 2026-04-12
+
+### 🐞 Fix
+
+- 敏感字段判断优先兼容 JSON tag, 避免 garble 混淆字段名后失效.
+
+### 🔧 Chore
+
+- go 1.26.2
 
 <a name="v0.13.1"></a>
 
@@ -267,6 +278,7 @@
 
 - 工具库首发。
 
+[v0.13.2]: https://github.com/jiaopengzi/go-utils/compare/v0.13.1...v0.13.2
 [v0.13.1]: https://github.com/jiaopengzi/go-utils/compare/v0.13.0...v0.13.1
 [v0.13.0]: https://github.com/jiaopengzi/go-utils/compare/v0.12.6...v0.13.0
 [v0.12.6]: https://github.com/jiaopengzi/go-utils/compare/v0.12.5...v0.12.6
