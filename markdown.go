@@ -52,6 +52,11 @@ func GetMarkdownEmptyPayTag(payType MarkdownPayType) string {
 	return fmt.Sprintf("<%s></%s>", payType, payType)
 }
 
+// GetMarkdownEmptyPayTagWithAttr 获取带属性的 markdown 空付费标签
+func GetMarkdownEmptyPayTagWithAttr(payType MarkdownPayType, attr string) string {
+	return fmt.Sprintf("<%s %s></%s>", payType, attr, payType)
+}
+
 // buildMarkdownLineOffsets 构建 markdown 每一行的起始偏移.
 //   - input, 原始 markdown 内容.
 //
@@ -274,9 +279,15 @@ func ReplaceMarkdownPayTagToEmpty(input string, payType MarkdownPayType) string 
 		}
 
 		if strings.HasPrefix(input[i:], startTag) {
-			result.WriteString(emptyTag)
 			i += len(startTag)
+			contentStart := i
 			i = skipPayBlock(input, i, n, startTag, endTag, lineOffsets, fencedLineFlags)
+			contentEnd := i - len(endTag)
+			if payType == MarkdownPayVideo && contentEnd > contentStart && strings.TrimSpace(input[contentStart:contentEnd]) != "" {
+				result.WriteString(GetMarkdownEmptyPayTagWithAttr(payType, "has-material"))
+			} else {
+				result.WriteString(emptyTag)
+			}
 			continue
 		}
 

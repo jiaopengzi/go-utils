@@ -96,7 +96,31 @@ func TestReplaceMarkdownPayTagToEmpty(t *testing.T) {
 			name:     "fenced code block 内的 pay-video 保留, 外部 pay-video 清空",
 			input:    "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-video>\n真实付费视频内容\n</pay-video>",
 			payType:  MarkdownPayVideo,
-			expected: "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-video></pay-video>",
+			expected: "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-video has-material></pay-video>",
+		},
+		{
+			name:     "pay-video 无内容时不携带 has-material",
+			input:    "<pay-video></pay-video>",
+			payType:  MarkdownPayVideo,
+			expected: "<pay-video></pay-video>",
+		},
+		{
+			name:     "pay-video 仅空白内容时不携带 has-material",
+			input:    "<pay-video>   \n  \n  </pay-video>",
+			payType:  MarkdownPayVideo,
+			expected: "<pay-video></pay-video>",
+		},
+		{
+			name:     "pay-video 有内容时携带 has-material",
+			input:    "<pay-video>素材链接</pay-video>",
+			payType:  MarkdownPayVideo,
+			expected: "<pay-video has-material></pay-video>",
+		},
+		{
+			name:     "pay-read 有内容时不携带 has-material",
+			input:    "<pay-read>付费阅读内容</pay-read>",
+			payType:  MarkdownPayRead,
+			expected: "<pay-read></pay-read>",
 		},
 	}
 
