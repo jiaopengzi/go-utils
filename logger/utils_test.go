@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/jiaopengzi/go-utils"
+	"github.com/stretchr/testify/require"
 )
 
 // TestStruct 测试结构体
@@ -310,5 +311,31 @@ func TestMaskSensitiveFields_MapStringKey(t *testing.T) {
 
 	if profile["access_token"] != "******" {
 		t.Fatalf("profile[access_token] = %v, want %q", profile["access_token"], "******")
+	}
+}
+
+// BoolSensitiveStruct 模拟命中敏感关键字但值类型为 bool 的结构体.
+type BoolSensitiveStruct struct {
+	DeleteToken bool   `json:"delete_token"`
+	AccessToken string `json:"access_token"`
+}
+
+// TestMaskSensitiveFields_NonStringSensitiveFieldDoesNotPanic 测试敏感字段值不是字符串时直接跳过, 不触发 panic.
+func TestMaskSensitiveFields_NonStringSensitiveFieldDoesNotPanic(t *testing.T) {
+	input := &BoolSensitiveStruct{
+		DeleteToken: true,
+		AccessToken: "token_value",
+	}
+
+	require.NotPanics(t, func() {
+		MaskSensitiveFields(input)
+	})
+
+	if !input.DeleteToken {
+		t.Fatalf("expected DeleteToken to remain true")
+	}
+
+	if input.AccessToken != "******" {
+		t.Fatalf("expected AccessToken to be masked, got %q", input.AccessToken)
 	}
 }

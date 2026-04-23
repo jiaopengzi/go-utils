@@ -79,7 +79,7 @@ func isFieldSensitive(identifier string, fields []string) bool {
 	return false
 }
 
-// maskFieldValue 对单个字段执行掩码操作, 支持 string 和 *string 两种情况; 其他类型触发 panic(保留原行为)
+// maskFieldValue 对单个字段执行掩码操作, 支持 string 和 *string 两种情况; 其他类型直接跳过.
 func maskFieldValue(field reflect.Value) {
 	switch field.Kind() {
 	case reflect.String:
@@ -94,7 +94,7 @@ func maskFieldValue(field reflect.Value) {
 			elem.SetString("******")
 		}
 	default:
-		panic("unhandled default case")
+		return
 	}
 }
 
