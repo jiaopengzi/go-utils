@@ -258,6 +258,11 @@ func collectMarkdownFencedCodeLineFlags(input string, lineOffsets []int) []bool 
 //   - payType, 需要替换的付费标签类型.
 //
 // 返回值 string, 替换后的 markdown 内容.
+//
+// 关键约束:
+//   1. fenced code block (``` ... ```) 内的付费标签视为字面量, 原样保留.
+//   2. 行内代码 (`...`) 内的付费标签视为字面量, 原样保留. inline code 不跨行 (CommonMark).
+//   3. 仅当付费标签存在配对的 endTag 时才替换为空标签; 缺少 endTag 时, 当作普通文本保留, 避免吞掉文末.
 func ReplaceMarkdownPayTagToEmpty(input string, payType MarkdownPayType) string {
 	startTag := GetMarkdownPayTag(payType, TagStart) // 开始标签
 	endTag := GetMarkdownPayTag(payType, TagEnd)     // 结束标签
@@ -267,8 +272,9 @@ func ReplaceMarkdownPayTagToEmpty(input string, payType MarkdownPayType) string 
 
 	var result strings.Builder // 结果使用 strings.Builder 构造, 避免频繁字符串拼接
 
-	i := 0          // 当前处理位置
-	n := len(input) // 输入字符串长度
+	i := 0                      // 当前处理位置
+	n := len(input)             // 输入字符串长度
+	inlineCodeBacktickCount := 0 // 当前外层行内代码反引号数量, 0 表示未进入行内代码
 
 	for i < n {
 		lineIndex := findMarkdownLineIndex(i, lineOffsets)
@@ -278,16 +284,43 @@ func ReplaceMarkdownPayTagToEmpty(input string, payType MarkdownPayType) string 
 			continue
 		}
 
+		// 行内代码不跨行: 遇到换行时强制关闭未配对的反引号状态, 与 CommonMark 一致.
+		if input[i] == '\n' && inlineCodeBacktickCount != 0 {
+			inlineCodeBacktickCount = 0
+		}
+
+		// 处理外层行内代码反引号开闭, 避免行内代码内的 <pay-*> 被当作真实付费标签.
+		nextIndex, nextInlineBackticks, consumed := consumeMarkdownInlineCodeBackticks(input, i, inlineCodeBacktickCount)
+		if consumed {
+			result.WriteString(input[i:nextIndex])
+			i = nextIndex
+			inlineCodeBacktickCount = nextInlineBackticks
+			continue
+		}
+
+		// 仍在行内代码内: 标签作为字面量保留, 不参与剥离.
+		if inlineCodeBacktickCount != 0 {
+			result.WriteByte(input[i])
+			i++
+			continue
+		}
+
 		if strings.HasPrefix(input[i:], startTag) {
-			i += len(startTag)
-			contentStart := i
-			i = skipPayBlock(input, i, n, startTag, endTag, lineOffsets, fencedLineFlags)
-			contentEnd := i - len(endTag)
+			contentStart := i + len(startTag)
+			nextI, ok := skipPayBlock(input, contentStart, n, startTag, endTag, lineOffsets, fencedLineFlags)
+			if !ok {
+				// 缺少配对 endTag: 作为字面量输出 startTag, 防止吞掉文末.
+				result.WriteString(startTag)
+				i = contentStart
+				continue
+			}
+			contentEnd := nextI - len(endTag)
 			if payType == MarkdownPayVideo && contentEnd > contentStart && strings.TrimSpace(input[contentStart:contentEnd]) != "" {
 				result.WriteString(GetMarkdownEmptyPayTagWithAttr(payType, "has-material"))
 			} else {
 				result.WriteString(emptyTag)
 			}
+			i = nextI
 			continue
 		}
 
@@ -307,8 +340,8 @@ func ReplaceMarkdownPayTagToEmpty(input string, payType MarkdownPayType) string 
 //   - lineOffsets, 每一行的起始偏移集合.
 //   - fencedLineFlags, 每一行是否位于 fenced code block 内的标记.
 //
-// 返回值 int, 跳过当前付费块后的扫描位置.
-func skipPayBlock(input string, i int, n int, startTag, endTag string, lineOffsets []int, fencedLineFlags []bool) int {
+// 返回值 int, 跳过当前付费块后的扫描位置; bool, 是否成功匹配到配对的 endTag (depth 归零).
+func skipPayBlock(input string, i int, n int, startTag, endTag string, lineOffsets []int, fencedLineFlags []bool) (int, bool) {
 	depth := 1 // 嵌套深度, 初始为 1
 	inlineCodeBacktickCount := 0
 
@@ -316,6 +349,11 @@ func skipPayBlock(input string, i int, n int, startTag, endTag string, lineOffse
 		if isMarkdownFencedLine(i, lineOffsets, fencedLineFlags) {
 			i++
 			continue
+		}
+
+		// 行内代码不跨行: 遇到换行时强制关闭未配对的反引号状态, 与 CommonMark 一致.
+		if input[i] == '\n' && inlineCodeBacktickCount != 0 {
+			inlineCodeBacktickCount = 0
 		}
 
 		nextIndex, nextInlineCodeBacktickCount, consumed := consumeMarkdownInlineCodeBackticks(input, i, inlineCodeBacktickCount)
@@ -340,7 +378,7 @@ func skipPayBlock(input string, i int, n int, startTag, endTag string, lineOffse
 		i++
 	}
 
-	return i
+	return i, depth == 0
 }
 
 // ReplaceMarkdownPayTagsToEmpty 替换多个 markdown 付费标签为空标签, 一次遍历处理

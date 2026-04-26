@@ -122,6 +122,100 @@ func TestReplaceMarkdownPayTagToEmpty(t *testing.T) {
 			payType:  MarkdownPayRead,
 			expected: "<pay-read></pay-read>",
 		},
+		{
+			name:     "行内代码包裹的 <pay-read> 不会被剩离 (多个并列)",
+			input:    "- 项目自定义标签（例如 `<pay-read>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+			payType:  MarkdownPayRead,
+			expected: "- 项目自定义标签（例如 `<pay-read>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+		},
+		{
+			name:     "行内代码包裹的 <pay-read> 与后续真实 <pay-read> 共存",
+			input:    "上一句: `<pay-read>` 是示例\n\n<pay-read>隐藏内容</pay-read>\n\n结尾",
+			payType:  MarkdownPayRead,
+			expected: "上一句: `<pay-read>` 是示例\n\n<pay-read></pay-read>\n\n结尾",
+		},
+		{
+			name:     "未闭合的 <pay-read> 当作字面量保留, 不吞掉后续内容",
+			input:    "前文\n<pay-read>这里不是付费区块, 只是个忘写尾标签的示例\n\n后文保留\n",
+			payType:  MarkdownPayRead,
+			expected: "前文\n<pay-read>这里不是付费区块, 只是个忘写尾标签的示例\n\n后文保留\n",
+		},
+		{
+			name:     "行内代码不跨行: 未闭合的反引号不影响下一行的真实 <pay-read>",
+			input:    "未闭合反引号 `<pay-read 不闭合\n<pay-read>真实内容</pay-read>\n尾\n",
+			payType:  MarkdownPayRead,
+			expected: "未闭合反引号 `<pay-read 不闭合\n<pay-read></pay-read>\n尾\n",
+		},
+		{
+			name:     "fenced code block 内的 <pay-read> 不会被剥离",
+			input:    "```html\n<pay-read>示例内容</pay-read>\n```\n\n<pay-read>真实</pay-read>\n尾",
+			payType:  MarkdownPayRead,
+			expected: "```html\n<pay-read>示例内容</pay-read>\n```\n\n<pay-read></pay-read>\n尾",
+		},
+
+		// .bug/260426-03 同源场景: pay-download
+		{
+			name:     "行内代码包裹的 <pay-download> 不会被剥离 (多个并列)",
+			input:    "- 项目自定义标签（例如 `<pay-download>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+			payType:  MarkdownPayDownload,
+			expected: "- 项目自定义标签（例如 `<pay-download>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+		},
+		{
+			name:     "行内代码包裹的 <pay-download> 与后续真实 <pay-download> 共存",
+			input:    "上一句: `<pay-download>` 是示例\n\n<pay-download>隐藏内容</pay-download>\n\n结尾",
+			payType:  MarkdownPayDownload,
+			expected: "上一句: `<pay-download>` 是示例\n\n<pay-download></pay-download>\n\n结尾",
+		},
+		{
+			name:     "未闭合的 <pay-download> 当作字面量保留, 不吞掉后续内容",
+			input:    "前文\n<pay-download>使用者忘写了尾标签\n\n后文保留\n",
+			payType:  MarkdownPayDownload,
+			expected: "前文\n<pay-download>使用者忘写了尾标签\n\n后文保留\n",
+		},
+		{
+			name:     "行内代码不跨行: 未闭合的反引号不影响下一行的真实 <pay-download>",
+			input:    "未闭合反引号 `<pay-download 不闭合\n<pay-download>真实内容</pay-download>\n尾\n",
+			payType:  MarkdownPayDownload,
+			expected: "未闭合反引号 `<pay-download 不闭合\n<pay-download></pay-download>\n尾\n",
+		},
+		{
+			name:     "fenced code block 内的 <pay-download> 不会被剥离",
+			input:    "```html\n<pay-download>示例内容</pay-download>\n```\n\n<pay-download>真实</pay-download>\n尾",
+			payType:  MarkdownPayDownload,
+			expected: "```html\n<pay-download>示例内容</pay-download>\n```\n\n<pay-download></pay-download>\n尾",
+		},
+
+		// .bug/260426-03 同源场景: pay-video
+		{
+			name:     "行内代码包裹的 <pay-video> 不会被剥离 (多个并列)",
+			input:    "- 项目自定义标签（例如 `<pay-video>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+			payType:  MarkdownPayVideo,
+			expected: "- 项目自定义标签（例如 `<pay-video>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+		},
+		{
+			name:     "行内代码包裹的 <pay-video> 与后续真实 <pay-video> 共存",
+			input:    "上一句: `<pay-video>` 是示例\n\n<pay-video>素材链接</pay-video>\n\n结尾",
+			payType:  MarkdownPayVideo,
+			expected: "上一句: `<pay-video>` 是示例\n\n<pay-video has-material></pay-video>\n\n结尾",
+		},
+		{
+			name:     "未闭合的 <pay-video> 当作字面量保留, 不吞掉后续内容",
+			input:    "前文\n<pay-video>使用者忘写了尾标签\n\n后文保留\n",
+			payType:  MarkdownPayVideo,
+			expected: "前文\n<pay-video>使用者忘写了尾标签\n\n后文保留\n",
+		},
+		{
+			name:     "行内代码不跨行: 未闭合的反引号不影响下一行的真实 <pay-video>",
+			input:    "未闭合反引号 `<pay-video 不闭合\n<pay-video>真实内容</pay-video>\n尾\n",
+			payType:  MarkdownPayVideo,
+			expected: "未闭合反引号 `<pay-video 不闭合\n<pay-video has-material></pay-video>\n尾\n",
+		},
+		{
+			name:     "fenced code block 内的 <pay-video> 不会被剥离",
+			input:    "```html\n<pay-video>示例内容</pay-video>\n```\n\n<pay-video>真实</pay-video>\n尾",
+			payType:  MarkdownPayVideo,
+			expected: "```html\n<pay-video>示例内容</pay-video>\n```\n\n<pay-video has-material></pay-video>\n尾",
+		},
 	}
 
 	for _, tt := range tests {
@@ -274,6 +368,21 @@ func TestReplaceMarkdownPayTagsToEmpty(t *testing.T) {
 			name:     "fenced code block 内的 pay-video 保留, 其他付费标签继续替换",
 			input:    "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-membership></pay-membership>\n\n<pay-read>\n您付费阅读的内容\n</pay-read>\n\n<pay-download>\n您的付费下载内容\n</pay-download>\n\n<pay-key id=\"您的key\" title=\"您的标题\" description=\"您的说明\"></pay-key>\n\n<video-player video-type=\"hls\" id=\"m-2-7f9d0d9c\"></video-player>",
 			expected: "```\n<pay-video>\n除视频外的其他隐藏内容, 如附件下载等; 若没有则将标签设置为一行\n<pay-membership></pay-membership>\n</pay-video>\n```\n\n<pay-membership></pay-membership>\n\n<pay-read></pay-read>\n\n<pay-download></pay-download>\n\n<pay-key id=\"您的key\" title=\"您的标题\" description=\"您的说明\"></pay-key>\n\n<video-player video-type=\"hls\" id=\"m-2-7f9d0d9c\"></video-player>",
+		},
+		{
+			name:     "复现行内代码包裹的 <pay-read>/<power-bi>/<wechat-captcha> 不会被剥离",
+			input:    "\n### 2.2 支持这些增强语法\n\n\n- 项目自定义标签（例如 `<pay-read>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+			expected: "\n### 2.2 支持这些增强语法\n\n\n- 项目自定义标签（例如 `<pay-read>`、`<power-bi>`、`<wechat-captcha>`）\n\n后面的内容\n",
+		},
+		{
+			name:     "行内代码包裹的 pay-* 与后续真实付费块共存",
+			input:    "示例: `<pay-read>`、`<pay-download>`。\n\n<pay-read>阅读隐藏</pay-read>\n\n<pay-download>下载隐藏</pay-download>\n\n<pay-video>视频隐藏</pay-video>\n\n尾部\n",
+			expected: "示例: `<pay-read>`、`<pay-download>`。\n\n<pay-read></pay-read>\n\n<pay-download></pay-download>\n\n<pay-video has-material></pay-video>\n\n尾部\n",
+		},
+		{
+			name:     "未闭合的付费起标签作为字面量保留, 不会吞掉后续内容",
+			input:    "前文\n<pay-read>使用者忘写了尾标签\n\n后文保留\n",
+			expected: "前文\n<pay-read>使用者忘写了尾标签\n\n后文保留\n",
 		},
 	}
 
