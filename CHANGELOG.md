@@ -4,6 +4,17 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+<a name="v0.14.3"></a>
+
+## [v0.14.3] - 2026-04-28
+
+### ♻️ Refactor
+
+- 降低认知复杂度
+
+### 🔧 Chore
+
+- 更新依赖
 
 <a name="v0.14.2"></a>
 
@@ -306,6 +317,7 @@
 
 - 工具库首发。
 
+[v0.14.3]: https://github.com/jiaopengzi/go-utils/compare/v0.14.2...v0.14.3
 [v0.14.2]: https://github.com/jiaopengzi/go-utils/compare/v0.14.1...v0.14.2
 [v0.14.1]: https://github.com/jiaopengzi/go-utils/compare/v0.14.0...v0.14.1
 [v0.14.0]: https://github.com/jiaopengzi/go-utils/compare/v0.13.2...v0.14.0
