@@ -45,6 +45,7 @@
         "filippo",
         "Fquery",
         "golangci",
+        "gopkg",
         "gopls",
         "goredis",
         "gorm",
