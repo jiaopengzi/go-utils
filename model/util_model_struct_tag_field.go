@@ -335,7 +335,7 @@ func GetTagContent(structPtr, fieldPtr any, tag, key, separator string) (string,
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetColumnName(modelTar Tabler, fieldPtr any, opts ...Option) (string, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -408,7 +408,7 @@ func GetColumnName(modelTar Tabler, fieldPtr any, opts ...Option) (string, error
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetColumnNames(modelTar Tabler, fieldPtrs []any, opts ...Option) ([]string, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -445,7 +445,7 @@ func GetColumnNames(modelTar Tabler, fieldPtrs []any, opts ...Option) ([]string,
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetAllColumnNames(modelTar Tabler, opts ...Option) ([]string, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -476,7 +476,7 @@ func GetAllColumnNames(modelTar Tabler, opts ...Option) ([]string, error) {
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetAllColumnNamesExcept(modelTar Tabler, exceptFieldPtrs []any, opts ...Option) ([]string, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -532,7 +532,7 @@ func GetAllColumnNamesExcept(modelTar Tabler, exceptFieldPtrs []any, opts ...Opt
 //   - 可选参数 WithTableName(false) 不添加前缀
 func GetColumnNameType(modelTar Tabler, fieldPtr any, opts ...Option) (TableField, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -566,12 +566,12 @@ func GetColumnNameType(modelTar Tabler, fieldPtr any, opts ...Option) (TableFiel
 	}
 
 	// 获取 tag column type 内容
-	ColumnName, err := GetTagContent(modelTar, fieldPtr, "gorm", "column:", ";")
+	ColumnName, err := GetTagContent(modelTar, fieldPtr, gormTag, "column:", ";")
 	if err != nil {
 		return tableField, err
 	}
 
-	ColumnType, err := GetTagContent(modelTar, fieldPtr, "gorm", "type:", ";")
+	ColumnType, err := GetTagContent(modelTar, fieldPtr, gormTag, "type:", ";")
 	if err != nil {
 		return tableField, err
 	}
@@ -601,7 +601,7 @@ func GetColumnNameType(modelTar Tabler, fieldPtr any, opts ...Option) (TableFiel
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetColumnNameTypes(modelTar Tabler, fieldPtrs []any, opts ...Option) ([]TableField, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -635,7 +635,7 @@ func GetColumnNameTypes(modelTar Tabler, fieldPtrs []any, opts ...Option) ([]Tab
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetAllColumnNameTypes(modelTar Tabler, opts ...Option) ([]TableField, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -666,7 +666,7 @@ func GetAllColumnNameTypes(modelTar Tabler, opts ...Option) ([]TableField, error
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func GetAllColumnNameTypesExcept(modelTar Tabler, exceptFieldPtrs []any, opts ...Option) ([]TableField, error) {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项
@@ -722,7 +722,7 @@ func GetAllColumnNameTypesExcept(modelTar Tabler, exceptFieldPtrs []any, opts ..
 //   - 可选参数 WithPrefix("my_custom_prefix") 使用自定义前缀
 func DeleteAtIsNull(modelTar Tabler, opts ...Option) string {
 	cfg := Config{
-		Tag: "gorm", // 默认为 gorm 标签
+		Tag: gormTag, // 默认为 gorm 标签
 	}
 
 	// 应用选项

@@ -19,6 +19,8 @@ import (
 	"github.com/jiaopengzi/go-utils/types"
 )
 
+const positiveIntErrMsg = "参数需要正整数."
+
 // init 初始化注册校验器
 func init() {
 	RegisterValidator("ValidatePaginate", ValidatorEntry{
@@ -28,7 +30,7 @@ func init() {
 
 	RegisterValidator("ValidateInt", ValidatorEntry{
 		ValidatorFunc: ValidateInt,
-		ErrMsg:        "参数需要正整数.",
+		ErrMsg:        positiveIntErrMsg,
 	})
 
 	RegisterValidator("ValidateIntYear", ValidatorEntry{
@@ -43,7 +45,7 @@ func init() {
 
 	RegisterValidator("ValidateJSONUint64", ValidatorEntry{
 		ValidatorFunc: ValidateJSONUint64,
-		ErrMsg:        "参数需要正整数.",
+		ErrMsg:        positiveIntErrMsg,
 	})
 
 	RegisterValidator("ValidateJSONUint64Slice", ValidatorEntry{
@@ -53,7 +55,7 @@ func init() {
 
 	RegisterValidator("ValidateJSONInt64", ValidatorEntry{
 		ValidatorFunc: ValidateJSONInt64,
-		ErrMsg:        "参数需要正整数.",
+		ErrMsg:        positiveIntErrMsg,
 	})
 
 	RegisterValidator("ValidateJSONInt64Slice", ValidatorEntry{
