@@ -1,6 +1,6 @@
 module github.com/jiaopengzi/go-utils
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
@@ -16,6 +16,7 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/smartwalle/alipay/v3 v3.2.29
+	github.com/sony/sonyflake v1.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/wechatpay-apiv3/wechatpay-go v0.2.21
 	go.uber.org/zap v1.28.0
