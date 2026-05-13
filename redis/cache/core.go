@@ -12,7 +12,6 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -218,94 +217,45 @@ func (c *Client) DecrementCounter(ctx context.Context, key string, duration time
 	return c.performCounterTx(ctx, key, duration, overrideTTL, -1)
 }
 
-// txGetInt64 从事务上下文安全读取 key 当前 int64 值，保留原有对 redis.Nil 的处理逻辑。
-func (c *Client) txGetInt64(tx *redis.Tx, ctx context.Context, key string) (int64, error) {
-	getCmd := tx.Get(ctx, key)
-	if getCmd.Err() != nil && !errors.Is(getCmd.Err(), redis.Nil) {
-		return 0, getCmd.Err()
-	}
+// performCounterTx 执行计数器增减并处理 TTL。
+// 这里不再使用 WATCH 事务, 避免高并发下因乐观锁冲突把正常计数放大为服务器错误。
+// delta: +1 表示递增, -1 表示递减。
+func (c *Client) performCounterTx(ctx context.Context, key string, duration time.Duration, overrideTTL bool, delta int64) (int64, error) {
+	var (
+		result int64
+		err    error
+	)
 
-	val, err := getCmd.Int64()
-	if err != nil && !errors.Is(err, redis.Nil) {
+	switch delta {
+	case 1:
+		result, err = c.Client.Incr(ctx, key).Result()
+	case -1:
+		result, err = c.Client.Decr(ctx, key).Result()
+	default:
+		return 0, fmt.Errorf("unsupported delta: %d", delta)
+	}
+	if err != nil {
 		return 0, err
 	}
 
-	return val, nil
-}
-
-// queueDeltaAndMaybeExpire 将 Incr/Decr 与 TTL 处理加入 pipeline。该函数仅负责在 pipeline 中排队命令，
-// 并根据 overrideTTL 与当前 TTL 决定是否添加 Expire 命令，保留原有业务逻辑。
-func (c *Client) queueDeltaAndMaybeExpire(pipe redis.Pipeliner, ctx context.Context, key string, delta int64, duration time.Duration, overrideTTL bool) error {
-	switch delta {
-	case 1:
-		pipe.Incr(ctx, key)
-	case -1:
-		pipe.Decr(ctx, key)
-	default:
-		return fmt.Errorf("unsupported delta: %d", delta)
+	if duration <= 0 {
+		return result, nil
 	}
 
 	if overrideTTL {
-		if duration > 0 {
-			pipe.Expire(ctx, key, duration)
-		}
-
-		return nil
-	}
-
-	// 若不覆盖 TTL，则判断当前是否已存在可用 TTL，若已过期则设置新的 TTL
-	tll, err := c.GetKeyTll(ctx, key)
-	if err != nil {
-		return err
-	}
-
-	if duration > 0 && tll <= 0 {
-		pipe.Expire(ctx, key, duration)
-	}
-
-	return nil
-}
-
-// performCounterTx 通用事务函数：封装重试、WATCH、读取当前值、以及在事务中排队增减与 TTL 的逻辑。
-// delta: +1 表示递增，-1 表示递减。
-func (c *Client) performCounterTx(ctx context.Context, key string, duration time.Duration, overrideTTL bool, delta int64) (int64, error) {
-	var err error
-
-	// 重试事务, 直到成功或超过重试次数
-	for range transactionRetry {
-		var val int64
-
-		err = c.Client.Watch(ctx, func(tx *redis.Tx) error {
-			// 先获取当前的值
-			v, e := c.txGetInt64(tx, ctx, key)
-			if e != nil {
-				return e
-			}
-
-			val = v
-
-			// 开启一个事务并排队操作
-			_, e = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-				return c.queueDeltaAndMaybeExpire(pipe, ctx, key, delta, duration, overrideTTL)
-			})
-
-			return e
-		}, key) // WATCH key
-
-		if err != nil {
-			if errors.Is(err, redis.TxFailedErr) {
-				// 如果事务失败，重试
-				continue
-			}
-
+		if err = c.Client.Expire(ctx, key, duration).Err(); err != nil {
 			return 0, err
 		}
 
-		return val + delta, nil
+		return result, nil
 	}
 
-	// 如果超过重试次数限制，返回错误
-	return 0, fmt.Errorf("exceeded retry limit: %w", err)
+	// 仅在 key 当前没有 TTL 时设置窗口，避免每次请求把限流窗口向后推移。
+	if err = c.Client.ExpireNX(ctx, key, duration).Err(); err != nil {
+		return 0, err
+	}
+
+	return result, nil
 }
 
 // GetCounterValue 实现 Cacher 接口 GetCounterValue 方法 获取计数器的值

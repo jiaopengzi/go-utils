@@ -3,6 +3,7 @@ module github.com/jiaopengzi/go-utils
 go 1.26.3
 
 require (
+	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/elastic/go-elasticsearch/v9 v9.3.3
 	github.com/gin-gonic/gin v1.12.0
@@ -63,6 +64,7 @@ require (
 	github.com/smartwalle/nsign v1.0.9 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect

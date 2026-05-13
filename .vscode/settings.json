@@ -36,6 +36,7 @@
         "appkey",
         "cerr",
         "chglog",
+        "Decr",
         "dout",
         "dtovalidator",
         "dupl",
@@ -57,6 +58,7 @@
         "madd",
         "mapstructure",
         "Mchid",
+        "miniredis",
         "moul",
         "mwgin",
         "natefinch",
@@ -91,7 +93,8 @@
         "XCLAIM",
         "XINFO",
         "XPENDING",
-        "zapgorm"
+        "zapgorm",
+        "zset"
     ],
     "chat.experimental.useSkillAdherencePrompt": true,
     "github.copilot.chat.agentCustomizationSkill.enabled": true
