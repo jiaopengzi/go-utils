@@ -10,6 +10,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -130,5 +131,145 @@ func TestIncrementCounterPreserveTTLWindow(t *testing.T) {
 
 	if secondTTL >= firstTTL {
 		t.Fatalf("期望 TTL 窗口不被重置, 实际 firstTTL=%v, secondTTL=%v", firstTTL, secondTTL)
+	}
+}
+
+// TestSetStringNXConcurrentOnlyOneWinner 验证并发写入同一个 key 时仅首个请求成功.
+func TestSetStringNXConcurrentOnlyOneWinner(t *testing.T) {
+	client, _, cleanup := newCacheClientForTest(t)
+	defer cleanup()
+
+	const total = 64
+	ctx := context.Background()
+	start := make(chan struct{})
+	resultCh := make(chan bool, total)
+	errCh := make(chan error, total)
+
+	var wg sync.WaitGroup
+	for i := range total {
+		value := fmt.Sprintf("value-%d", i)
+
+		wg.Go(func() {
+			<-start
+
+			ok, err := client.SetStringNX(ctx, "setnx:test", value, 5*time.Second)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			resultCh <- ok
+		})
+	}
+
+	close(start)
+	wg.Wait()
+	close(resultCh)
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Fatalf("期望 SetStringNX 并发成功, 实际报错: %v", err)
+		}
+	}
+
+	var successCount int
+	for ok := range resultCh {
+		if ok {
+			successCount++
+		}
+	}
+
+	if successCount != 1 {
+		t.Fatalf("期望仅 1 个并发请求原子写入成功, 实际为 %d", successCount)
+	}
+
+	value, err := client.GetString(ctx, "setnx:test")
+	if err != nil {
+		t.Fatalf("获取 SetStringNX 最终值失败: %v", err)
+	}
+	if value == "" {
+		t.Fatal("期望 SetStringNX 已写入值, 实际为空")
+	}
+
+	ttl, err := client.GetKeyTll(ctx, "setnx:test")
+	if err != nil {
+		t.Fatalf("获取 SetStringNX TTL 失败: %v", err)
+	}
+	if ttl <= 0 {
+		t.Fatalf("期望 SetStringNX 已设置 TTL, 实际为 %v", ttl)
+	}
+	if ttl > 5*time.Second {
+		t.Fatalf("期望 SetStringNX TTL 不超过写入值, 实际为 %v", ttl)
+	}
+}
+
+// TestSetCounterNXConcurrentOnlyOneWinner 验证并发初始化同一个计数器时仅首个请求成功.
+func TestSetCounterNXConcurrentOnlyOneWinner(t *testing.T) {
+	client, _, cleanup := newCacheClientForTest(t)
+	defer cleanup()
+
+	const total = 64
+	ctx := context.Background()
+	start := make(chan struct{})
+	resultCh := make(chan bool, total)
+	errCh := make(chan error, total)
+
+	var wg sync.WaitGroup
+	for i := range total {
+		value := int64(i)
+
+		wg.Go(func() {
+			<-start
+
+			ok, err := client.SetCounterNX(ctx, "counter:setnx", value, 5*time.Second)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			resultCh <- ok
+		})
+	}
+
+	close(start)
+	wg.Wait()
+	close(resultCh)
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Fatalf("期望 SetCounterNX 并发成功, 实际报错: %v", err)
+		}
+	}
+
+	var successCount int
+	for ok := range resultCh {
+		if ok {
+			successCount++
+		}
+	}
+
+	if successCount != 1 {
+		t.Fatalf("期望仅 1 个并发请求原子初始化计数器成功, 实际为 %d", successCount)
+	}
+
+	value, err := client.GetCounterValue(ctx, "counter:setnx")
+	if err != nil {
+		t.Fatalf("获取 SetCounterNX 最终值失败: %v", err)
+	}
+	if value < 0 || value >= total {
+		t.Fatalf("期望 SetCounterNX 写入的计数值落在 [0, %d) 区间, 实际为 %d", total, value)
+	}
+
+	ttl, err := client.GetKeyTll(ctx, "counter:setnx")
+	if err != nil {
+		t.Fatalf("获取 SetCounterNX TTL 失败: %v", err)
+	}
+	if ttl <= 0 {
+		t.Fatalf("期望 SetCounterNX 已设置 TTL, 实际为 %v", ttl)
+	}
+	if ttl > 5*time.Second {
+		t.Fatalf("期望 SetCounterNX TTL 不超过写入值, 实际为 %v", ttl)
 	}
 }

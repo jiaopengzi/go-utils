@@ -28,6 +28,7 @@ type Cacher interface {
 	HGetAll(ctx context.Context, key string) (map[string]string, error)                                        // 获取所有缓存数据 hash
 	SetBool(ctx context.Context, key string, value bool, duration time.Duration) error                         // 增 缓存数据 布尔
 	SetString(ctx context.Context, key, value string, duration time.Duration) error                            // 增 缓存数据 纯字符串
+	SetStringNX(ctx context.Context, key, value string, duration time.Duration) (bool, error)                  // 原子写入纯字符串，仅在 key 不存在时成功
 	SetStringWithStruct(ctx context.Context, key string, value any, duration time.Duration) error              // 增 缓存数据 结构体
 	GetBool(ctx context.Context, key string) (bool, error)                                                     // 获取缓存数据 纯字符串
 	GetString(ctx context.Context, key string) (string, error)                                                 // 获取缓存数据 纯字符串
@@ -39,6 +40,7 @@ type Cacher interface {
 	SIsMember(ctx context.Context, key, str string) (bool, error)                                              // 检查字符串是否在 缓存 set中
 	GetSets(ctx context.Context, key string) ([]string, error)                                                 // 获取缓存 set 数据
 	SetCounter(ctx context.Context, key string, value int64, duration time.Duration) error                     // 设置计数器的初始值
+	SetCounterNX(ctx context.Context, key string, value int64, duration time.Duration) (bool, error)           // 原子设置计数器初始值，仅在 key 不存在时成功
 	IncrementCounter(ctx context.Context, key string, duration time.Duration, overrideTTL bool) (int64, error) // 递增计数器
 	DecrementCounter(ctx context.Context, key string, duration time.Duration, overrideTTL bool) (int64, error) // 递减计数器
 	GetCounterValue(ctx context.Context, key string) (int64, error)                                            // 获取计数器的值
@@ -50,14 +52,6 @@ type Cacher interface {
 	ZRangeWithScores(ctx context.Context, key string, start, stop int64) ([]redis.Z, error)                    // 获取 zset 数据(包含分数)
 	ZCard(ctx context.Context, key string) (int64, error)                                                      // 获取 zset 数据个数
 	XInfoGroups(ctx context.Context, key string) *redis.XInfoGroupsCmd                                         // 获取 stream 的所有组信息
-}
-
-// transactionRetry 默认事务重试次数
-var transactionRetry = 3
-
-// SetTransactionRetry 设置事务重试次数, 不设置则默认 3 次
-func SetTransactionRetry(retry int) {
-	transactionRetry = retry
 }
 
 // Client 缓存客户端
@@ -106,6 +100,11 @@ func (c *Client) HGetAll(ctx context.Context, key string) (map[string]string, er
 // SetString 实现 Cacher 接口 SetString 方法 增 缓存数据 纯字符串
 func (c *Client) SetString(ctx context.Context, key, value string, duration time.Duration) error {
 	return c.Client.Set(ctx, key, value, duration).Err()
+}
+
+// SetStringNX 实现 Cacher 接口 SetStringNX 方法 原子写入纯字符串，仅在 key 不存在时成功.
+func (c *Client) SetStringNX(ctx context.Context, key, value string, duration time.Duration) (bool, error) {
+	return c.Client.SetNX(ctx, key, value, duration).Result()
 }
 
 // SetBool 实现 Cacher 接口 SetBool 方法 增 缓存数据 布尔
@@ -203,6 +202,11 @@ func (c *Client) GetSets(ctx context.Context, key string) ([]string, error) {
 // SetCounter 实现 Cacher 接口 SetCounter 方法 设置计数器的初始值
 func (c *Client) SetCounter(ctx context.Context, key string, value int64, duration time.Duration) error {
 	return c.Client.Set(ctx, key, value, duration).Err()
+}
+
+// SetCounterNX 实现 Cacher 接口 SetCounterNX 方法, 仅在 key 不存在时原子设置计数器初始值.
+func (c *Client) SetCounterNX(ctx context.Context, key string, value int64, duration time.Duration) (bool, error) {
+	return c.Client.SetNX(ctx, key, value, duration).Result()
 }
 
 // IncrementCounter 实现 Cacher 接口 IncrementCounter 方法 计数器，每次调用加一, 根据 overrideTTL 判断是否覆盖原有 TTL
