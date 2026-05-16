@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -325,22 +326,42 @@ func (c *BaseConsumer[T]) OnlineMessage() error {
 	return nil
 }
 
+// isNoGroupError 判断错误是否为 NOGROUP（stream 或 consumer group 不存在）。
+func isNoGroupError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "NOGROUP")
+}
+
 // startPendingLoop 定时检查并处理挂起的消息
 func (c *BaseConsumer[T]) startPendingLoop(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	var noGroupCount int // NOGROUP 连续计数，用于降噪
+
 	for {
 		select {
 		case <-ctx.Done():
-			// context 被取消, 退出循环
 			zap.L().Debug("PendingMessage loop stopped", zap.String("consumer", c.ConsumerName))
 			return
 
 		case <-ticker.C:
 			if err := c.PendingMessage(); err != nil {
-				// 只记录错误日志, 不中断循环
-				zap.L().Warn("处理 pending 消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
+				if isNoGroupError(err) {
+					noGroupCount++
+					// 前 3 次 Debug 记录，之后完全静默避免日志风暴
+					if noGroupCount <= 3 {
+						zap.L().Debug("pending 消息跳过: stream 或 group 不存在",
+							zap.String("consumer", c.ConsumerName),
+							zap.String("stream", c.StreamName),
+							zap.String("group", c.GroupName),
+						)
+					}
+				} else {
+					noGroupCount = 0
+					zap.L().Warn("处理 pending 消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
+				}
+			} else {
+				noGroupCount = 0
 			}
 		}
 	}
