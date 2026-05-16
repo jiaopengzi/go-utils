@@ -21,6 +21,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	// cipherVersionGCM 标识 AES-GCM 加密格式的版本号
+	cipherVersionGCM byte = 0x02
+)
+
 // GenerateHashedPassword 生成密码的哈希值
 func GenerateHashedPassword(password string, bcryptCost int) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
@@ -40,21 +45,46 @@ func ComparePasswords(hashedPassword, password string) bool {
 // EncryptAES 加密函数, 对明文字符串进行加密 返回加密后的字符串
 //   - plainText: 需要加密的明文字符串
 //   - keyStr: 密钥
-//   - ivStr: 初始化向量
+//   - ivStr: 初始化向量(可选)。未传时使用 AES-GCM + 随机 nonce，传入时使用 AES-CBC
 func EncryptAES(plainText string, keyStr string, ivStr ...string) (string, error) {
-	// 将字符串形式的密钥和初始化向量转换为字节切片
+	// 将字符串形式的密钥转换为字节切片
 	key := []byte(keyStr)
-
-	// 校验初始化向量
-	iv, err := validateIV(ivStr)
-	if err != nil {
-		return "", err
-	}
 
 	// 使用密钥创建一个新的AES密码块
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", errors.New("创建新密码块失败：" + err.Error())
+	}
+
+	// 未传 IV → AES-GCM，每次使用随机 nonce
+	if len(ivStr) == 0 {
+		aesgcm, gcmErr := cipher.NewGCM(block)
+		if gcmErr != nil {
+			return "", errors.New("创建新密码块失败：" + gcmErr.Error())
+		}
+
+		nonce := make([]byte, aesgcm.NonceSize())
+		if _, randErr := rand.Read(nonce); randErr != nil {
+			return "", errors.New("生成随机 nonce 失败：" + randErr.Error())
+		}
+
+		ciphertext := aesgcm.Seal(nil, nonce, []byte(plainText), nil)
+
+		out := make([]byte, 1+len(nonce)+len(ciphertext))
+		out[0] = cipherVersionGCM
+		copy(out[1:1+len(nonce)], nonce)
+		copy(out[1+len(nonce):], ciphertext)
+
+		// 将加密后的字节数据转换为Base64编码的字符串
+		return base64.StdEncoding.EncodeToString(out), nil
+	}
+
+	// 传入了 IV → AES-CBC 加密
+
+	// 校验初始化向量
+	iv, err := validateIV(ivStr)
+	if err != nil {
+		return "", err
 	}
 
 	// 为明文添加填充，以满足AES加密的块大小要求
@@ -77,23 +107,36 @@ func EncryptAES(plainText string, keyStr string, ivStr ...string) (string, error
 // DecryptAES 解密函数, 对加密过的字符串进行解密, 返回解密后的字符串.
 //   - encryptStr: 需要解密的字符串
 //   - keyStr: 密钥
-//   - ivStr: 初始化向量
+//   - ivStr: 初始化向量(可选)。未传时自动检测 GCM 或旧 CBC 格式，传入时使用 AES-CBC
 func DecryptAES(encryptStr string, keyStr string, ivStr ...string) (string, error) {
-	// 将字符串形式的密钥和初始化向量转换为字节切片
+	// 将字符串形式的密钥转换为字节切片
 	key := []byte(keyStr)
 
-	// 校验初始化向量
-	iv, err := validateIV(ivStr)
-	if err != nil {
-		return "", err
-	}
-
 	// 对加密过的字符串进行Base64解码
-	ciphertext, err := base64.StdEncoding.DecodeString(encryptStr)
+	raw, err := base64.StdEncoding.DecodeString(encryptStr)
 	if err != nil {
 		return "", errors.New("base64 解码失败：" + err.Error())
 	}
 
+	// 传入了 IV → AES-CBC 解密
+	if len(ivStr) > 0 {
+		// 校验初始化向量
+		iv, err := validateIV(ivStr)
+		if err != nil {
+			return "", err
+		}
+		return decryptCBC(key, iv, raw)
+	}
+
+	// 未传 IV → 自动检测格式
+	if len(raw) > 0 && raw[0] == cipherVersionGCM {
+		return decryptGCM(key, raw[1:13], raw[13:])
+	}
+	return decryptCBC(key, []byte("0000000000000000"), raw)
+}
+
+// decryptCBC AES-CBC 解密
+func decryptCBC(key, iv, ciphertext []byte) (string, error) {
 	// 使用密钥创建一个新的AES密码块
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -118,6 +161,26 @@ func DecryptAES(encryptStr string, keyStr string, ivStr ...string) (string, erro
 
 	// 返回解密后的字符串
 	return string(trimmedPlaintext), nil
+}
+
+// decryptGCM AES-GCM 解密
+func decryptGCM(key, nonce, ciphertext []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", errors.New("创建新的密码块失败：" + err.Error())
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", errors.New("创建 GCM 实例失败：" + err.Error())
+	}
+
+	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", errors.New("解密失败：" + err.Error())
+	}
+
+	return string(plaintext), nil
 }
 
 // validateIV 校验初始化向量,返回初始化向量的字节切片
