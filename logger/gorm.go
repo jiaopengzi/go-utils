@@ -58,8 +58,12 @@ type gormLoggerWrapper struct {
 }
 
 func (w *gormLoggerWrapper) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
+	inner, ok := w.inner.LogMode(level).(zapgorm2.Logger)
+	if !ok {
+		inner = w.inner
+	}
 	return &gormLoggerWrapper{
-		inner:       w.inner.LogMode(level).(zapgorm2.Logger),
+		inner:       inner,
 		classifiers: w.classifiers,
 	}
 }
