@@ -5,9 +5,30 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v0.16.0"></a>
+
+## [v0.16.0] - 2026-05-16
+
+### ♻️ Refactor
+
+- SQLTemplate 重命名为 UnsafeSQLTemplate，补充安全警告
+
+### ✨ Feat
+
+- 新增 boot 公共引导包 子进程启动、日志尾缓存、端口占用检测
+- GORM logger 支持 ErrorClassifier，按错误类型调整日志级别
+
+### 🐞 Fix
+
+- NOGROUP pending 循环降为 Debug + 计数限频，避免日志风暴
+- EncryptAES/DecryptAES 未传 IV 时升级为 AES-GCM，兼容旧格式解密
+
+### 🔧 Chore
+
+- lint 修复
 <a name="v0.15.0"></a>
 
-## [v0.15.0] - 2026-04-28
+## [v0.15.0] - 2026-05-13
 
 ### ✨ Feat
 
@@ -337,6 +358,7 @@
 
 - 工具库首发。
 
+[v0.16.0]: https://github.com/jiaopengzi/go-utils/compare/v0.15.0...v0.16.0
 [v0.15.0]: https://github.com/jiaopengzi/go-utils/compare/v0.14.3...v0.15.0
 [v0.14.3]: https://github.com/jiaopengzi/go-utils/compare/v0.14.2...v0.14.3
 [v0.14.2]: https://github.com/jiaopengzi/go-utils/compare/v0.14.1...v0.14.2
