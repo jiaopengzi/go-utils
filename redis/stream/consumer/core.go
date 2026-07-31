@@ -331,6 +331,31 @@ func isNoGroupError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "NOGROUP")
 }
 
+// handlePendingTick 处理一次 pending 轮询结果, 并返回更新后的 NOGROUP 连续计数。
+func (c *BaseConsumer[T]) handlePendingTick(noGroupCount int) int {
+	err := c.PendingMessage()
+	if err == nil {
+		return 0
+	}
+
+	if !isNoGroupError(err) {
+		zap.L().Warn("处理 pending 消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
+		return 0
+	}
+
+	noGroupCount++
+	// 前 3 次 Debug 记录, 之后完全静默避免日志风暴。
+	if noGroupCount <= 3 {
+		zap.L().Debug("pending 消息跳过: stream 或 group 不存在",
+			zap.String("consumer", c.ConsumerName),
+			zap.String("stream", c.StreamName),
+			zap.String("group", c.GroupName),
+		)
+	}
+
+	return noGroupCount
+}
+
 // startPendingLoop 定时检查并处理挂起的消息
 func (c *BaseConsumer[T]) startPendingLoop(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
@@ -345,24 +370,7 @@ func (c *BaseConsumer[T]) startPendingLoop(ctx context.Context) {
 			return
 
 		case <-ticker.C:
-			if err := c.PendingMessage(); err != nil {
-				if isNoGroupError(err) {
-					noGroupCount++
-					// 前 3 次 Debug 记录，之后完全静默避免日志风暴
-					if noGroupCount <= 3 {
-						zap.L().Debug("pending 消息跳过: stream 或 group 不存在",
-							zap.String("consumer", c.ConsumerName),
-							zap.String("stream", c.StreamName),
-							zap.String("group", c.GroupName),
-						)
-					}
-				} else {
-					noGroupCount = 0
-					zap.L().Warn("处理 pending 消息失败", zap.String("consumer", c.ConsumerName), zap.Error(err))
-				}
-			} else {
-				noGroupCount = 0
-			}
+			noGroupCount = c.handlePendingTick(noGroupCount)
 		}
 	}
 }
