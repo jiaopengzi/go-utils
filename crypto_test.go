@@ -9,13 +9,21 @@
 package utils
 
 import (
+	"strings"
 	"testing"
 )
 
 var password = "123456"
-var hashedPassword = "$2a$10$2PgrS4Kr.Jc2N1bpUPgh2u78kWJ9cG7NCCYQ4wHC7gKQWq.2S9ige"
 
 func TestComparePasswords(t *testing.T) {
+	hashedPassword, err := GenerateHashedPassword(password, 10)
+	if err != nil {
+		t.Fatalf("GenerateHashedPassword() error = %v", err)
+	}
+
+	if !strings.HasPrefix(hashedPassword, pbkdf2HashScheme+"$") {
+		t.Fatalf("GenerateHashedPassword() returned unexpected format: %s", hashedPassword)
+	}
 
 	// 测试匹配的情况
 	isValid := ComparePasswords(hashedPassword, password)

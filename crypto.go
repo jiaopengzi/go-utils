@@ -12,34 +12,88 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/pbkdf2"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
-
-	"golang.org/x/crypto/bcrypt"
+	"strconv"
+	"strings"
 )
 
 const (
 	// cipherVersionGCM 标识 AES-GCM 加密格式的版本号
-	cipherVersionGCM byte = 0x02
+	cipherVersionGCM      byte = 0x02
+	pbkdf2HashScheme           = "pbkdf2-sha256"
+	passwordSaltSize           = 16
+	passwordHashSize           = 32
+	passwordMinIterations      = 600000
 )
 
 // GenerateHashedPassword 生成密码的哈希值
 func GenerateHashedPassword(password string, bcryptCost int) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	salt := make([]byte, passwordSaltSize)
+	if _, err := rand.Read(salt); err != nil {
+		return "", err
+	}
+
+	iterations := normalizePasswordHashIterations(bcryptCost)
+	hash, err := pbkdf2.Key(sha256.New, password, salt, iterations, passwordHashSize)
 	if err != nil {
 		return "", err
 	}
 
-	return string(hash), nil
+	return strings.Join([]string{
+		pbkdf2HashScheme,
+		strconv.Itoa(iterations),
+		base64.RawStdEncoding.EncodeToString(salt),
+		base64.RawStdEncoding.EncodeToString(hash),
+	}, "$"), nil
 }
 
 // ComparePasswords 根据哈希值验证密码是否匹配
 func ComparePasswords(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
+	parts := strings.Split(hashedPassword, "$")
+	if len(parts) != 4 || parts[0] != pbkdf2HashScheme {
+		return false
+	}
+
+	iterations, err := strconv.Atoi(parts[1])
+	if err != nil || iterations < passwordMinIterations {
+		return false
+	}
+
+	salt, err := base64.RawStdEncoding.DecodeString(parts[2])
+	if err != nil || len(salt) != passwordSaltSize {
+		return false
+	}
+
+	expectedHash, err := base64.RawStdEncoding.DecodeString(parts[3])
+	if err != nil || len(expectedHash) != passwordHashSize {
+		return false
+	}
+
+	actualHash, err := pbkdf2.Key(sha256.New, password, salt, iterations, len(expectedHash))
+	if err != nil {
+		return false
+	}
+
+	return subtle.ConstantTimeCompare(actualHash, expectedHash) == 1
+}
+
+// normalizePasswordHashIterations 将兼容入参转换为安全的 PBKDF2 迭代次数.
+//   - legacyCost, 旧 bcrypt cost 入参.
+//
+// 返回值 int, 不低于安全下限的迭代次数.
+func normalizePasswordHashIterations(legacyCost int) int {
+	if legacyCost < passwordMinIterations {
+		return passwordMinIterations
+	}
+
+	return legacyCost
 }
 
 // EncryptAES 加密函数, 对明文字符串进行加密 返回加密后的字符串
