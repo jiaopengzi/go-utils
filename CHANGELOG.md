@@ -4,6 +4,14 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+<a name="v1.0.2"></a>
+
+## [v1.0.2] - 2026-08-12
+
+### 📦 Build
+
+- 依赖升级
+
 <a name="v1.0.1"></a>
 
 ## [v1.0.1] - 2026-07-31
@@ -376,36 +384,3 @@
 ### Add
 
 - 工具库首发。
-
-[v1.0.1]: https://github.com/jiaopengzi/go-utils/compare/v1.0.0...v1.0.1
-[v1.0.0]: https://github.com/jiaopengzi/go-utils/compare/v0.16.0...v1.0.0
-[v0.16.0]: https://github.com/jiaopengzi/go-utils/compare/v0.15.0...v0.16.0
-[v0.15.0]: https://github.com/jiaopengzi/go-utils/compare/v0.14.3...v0.15.0
-[v0.14.3]: https://github.com/jiaopengzi/go-utils/compare/v0.14.2...v0.14.3
-[v0.14.2]: https://github.com/jiaopengzi/go-utils/compare/v0.14.1...v0.14.2
-[v0.14.1]: https://github.com/jiaopengzi/go-utils/compare/v0.14.0...v0.14.1
-[v0.14.0]: https://github.com/jiaopengzi/go-utils/compare/v0.13.2...v0.14.0
-[v0.13.2]: https://github.com/jiaopengzi/go-utils/compare/v0.13.1...v0.13.2
-[v0.13.1]: https://github.com/jiaopengzi/go-utils/compare/v0.13.0...v0.13.1
-[v0.13.0]: https://github.com/jiaopengzi/go-utils/compare/v0.12.6...v0.13.0
-[v0.12.6]: https://github.com/jiaopengzi/go-utils/compare/v0.12.5...v0.12.6
-[v0.12.5]: https://github.com/jiaopengzi/go-utils/compare/v0.12.4...v0.12.5
-[v0.12.4]: https://github.com/jiaopengzi/go-utils/compare/v0.12.3...v0.12.4
-[v0.12.3]: https://github.com/jiaopengzi/go-utils/compare/v0.12.2...v0.12.3
-[v0.12.2]: https://github.com/jiaopengzi/go-utils/compare/v0.12.1...v0.12.2
-[v0.12.1]: https://github.com/jiaopengzi/go-utils/compare/v0.12.0...v0.12.1
-[v0.12.0]: https://github.com/jiaopengzi/go-utils/compare/v0.11.0...v0.12.0
-[v0.11.0]: https://github.com/jiaopengzi/go-utils/compare/v0.10.0...v0.11.0
-[v0.10.0]: https://github.com/jiaopengzi/go-utils/compare/v0.9.1...v0.10.0
-[v0.9.1]: https://github.com/jiaopengzi/go-utils/compare/v0.9.0...v0.9.1
-[v0.9.0]: https://github.com/jiaopengzi/go-utils/compare/v0.8.1...v0.9.0
-[v0.8.1]: https://github.com/jiaopengzi/go-utils/compare/v0.8.0...v0.8.1
-[v0.8.0]: https://github.com/jiaopengzi/go-utils/compare/v0.7.0...v0.8.0
-[v0.7.0]: https://github.com/jiaopengzi/go-utils/compare/v0.6.0...v0.7.0
-[v0.6.0]: https://github.com/jiaopengzi/go-utils/compare/v0.5.0...v0.6.0
-[v0.5.0]: https://github.com/jiaopengzi/go-utils/compare/v0.4.0...v0.5.0
-[v0.4.0]: https://github.com/jiaopengzi/go-utils/compare/v0.3.0...v0.4.0
-[v0.3.0]: https://github.com/jiaopengzi/go-utils/compare/v0.2.2...v0.3.0
-[v0.2.2]: https://github.com/jiaopengzi/go-utils/compare/v0.2.1...v0.2.2
-[v0.2.1]: https://github.com/jiaopengzi/go-utils/compare/v0.2.0...v0.2.1
-[v0.2.0]: https://github.com/jiaopengzi/go-utils/compare/v0.1.0...v0.2.0
