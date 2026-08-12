@@ -5,7 +5,7 @@ go 1.26.5
 require (
 	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
-	github.com/elastic/go-elasticsearch/v9 v9.4.2
+	github.com/elastic/go-elasticsearch/v9 v9.5.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jiaopengzi/cert v1.0.1
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
-	github.com/redis/go-redis/v9 v9.21.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/smartwalle/alipay/v3 v3.2.31
 	github.com/sony/sonyflake v1.3.0
