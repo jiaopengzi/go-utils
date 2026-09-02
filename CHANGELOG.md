@@ -4,6 +4,19 @@
 
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
+
+<a name="v1.1.0"></a>
+
+## [v1.1.0] - 2026-09-02
+
+### ✨ Feat
+
+- 增加 domain 域名相关的方法
+
+### 📦 Build
+
+- 依赖升级
+
 <a name="v1.0.2"></a>
 
 ## [v1.0.2] - 2026-08-12
