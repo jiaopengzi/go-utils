@@ -358,7 +358,8 @@ func ReadFileToString(filePath string) (string, error) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		content.WriteString(scanner.Text() + "\n")
+		content.WriteString(scanner.Text())
+		content.WriteString("\n")
 	}
 
 	if err = scanner.Err(); err != nil {
