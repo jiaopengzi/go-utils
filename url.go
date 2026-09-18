@@ -120,6 +120,34 @@ func EncodeURL(s string) string {
 	return url.QueryEscape(s)
 }
 
+// isURLComponentUnreserved 判断字节 c 是否为 encodeURIComponent 的不转义字符.
+// JS encodeURIComponent 仅保留字母/数字与 -_.!~*'() 字面量, 其余全部转义.
+func isURLComponentUnreserved(c byte) bool {
+	if strings.ContainsRune("-_.!~*'()", rune(c)) {
+		return true
+	}
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+}
+
+// EncodeURLComponent 按 JS encodeURIComponent 语义对字符串 s 做百分号编码.
+// EncodeURL(url.QueryEscape) 的关键差异: 空格编码为 %20 而非 "+",
+// "!'()*~" 保留字面量. 该形态可直接用于 URL 路径段, 且与前端 encodeURIComponent 的
+// 编解码往返恒等, 保证按 slug 精确匹配时两侧形态一致 (QueryEscape 形态中的字面 "+"
+// 经前端 decodeURIComponent/encodeURIComponent 往返会变为 %2B 导致未命中).
+func EncodeURLComponent(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if isURLComponentUnreserved(c) {
+			b.WriteByte(c)
+			continue
+		}
+		fmt.Fprintf(&b, "%%%02X", c)
+	}
+	return b.String()
+}
+
 // GenerateSlugByName 根据名称生成 slug
 func GenerateSlugByName(s string) (string, error) {
 	//	判断 s 是否为空
@@ -127,8 +155,8 @@ func GenerateSlugByName(s string) (string, error) {
 		return "", ErrNotEmpty
 	}
 
-	//	生成 slug
-	slug := EncodeURL(s)
+	//	生成 slug (改用 JS encodeURIComponent 兼容编码, 空格为 %20 而非 "+")
+	slug := EncodeURLComponent(s)
 
 	//	判断 slug 长度是否超过 255
 	if len(slug) > 255 {
