@@ -5,6 +5,14 @@
 该格式基于 [Keep a Changelog](https://keepachangelog.com),
 本项目遵循 [语义化版本控制](https://semver.org/spec/v2.0.0.html)。
 
+<a name="v1.1.2"></a>
+
+## [v1.1.2] - 2026-09-19
+
+### 🐞 Fix
+
+- EncodeURLComponent 按 JS encodeURIComponent 语义对字符串 s 做百分号编码.
+
 <a name="v1.1.1"></a>
 
 ## [v1.1.1] - 2026-09-16
