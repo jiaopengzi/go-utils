@@ -1,27 +1,27 @@
 module github.com/jiaopengzi/go-utils
 
-go 1.27.1
+go 1.27.3
 
 require (
-	github.com/alicebob/miniredis/v2 v2.39.0
+	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/elastic/go-elasticsearch/v9 v9.5.2
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-playground/locales v0.14.1
-	github.com/go-playground/universal-translator v0.18.1
-	github.com/go-playground/validator/v10 v10.30.4
-	github.com/go-redsync/redsync/v4 v4.17.0
+	github.com/go-playground/locales v0.14.2
+	github.com/go-playground/universal-translator v0.18.2
+	github.com/go-playground/validator/v10 v10.30.5
+	github.com/go-redsync/redsync/v4 v4.18.1
 	github.com/google/uuid v1.6.0
-	github.com/jiaopengzi/cert v1.0.3
+	github.com/jiaopengzi/cert v1.0.4
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
-	github.com/redis/go-redis/v9 v9.22.0
+	github.com/redis/go-redis/v9 v9.23.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/smartwalle/alipay/v3 v3.2.31
 	github.com/sony/sonyflake v1.3.0
 	github.com/stretchr/testify v1.12.1
 	github.com/wechatpay-apiv3/wechatpay-go v0.2.21
 	go.uber.org/zap v1.28.0
-	golang.org/x/net v0.59.0
+	golang.org/x/net v0.62.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/gorm v1.31.2
@@ -46,7 +46,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -65,12 +65,12 @@ require (
 	go.opentelemetry.io/otel v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/arch v0.25.0 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
